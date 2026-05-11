@@ -1,0 +1,13 @@
+{
+  "name": "@demo/tiny-engine-plugin-page",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "build": "node -e \"console.log('custom page wrapper has no build output')\""
+  },
+  "dependencies": {
+    "@opentiny/tiny-engine-plugin-page": "^2.10.0"
+  }
+}

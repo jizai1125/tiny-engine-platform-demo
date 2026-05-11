@@ -1,0 +1,15 @@
+{
+  "name": "tiny-engine-platform-demo",
+  "private": true,
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "pnpm build:materials && pnpm dev:designer",
+    "dev:designer": "pnpm --filter designer dev",
+    "build:materials": "node ./scripts/buildMaterials.mjs",
+    "split:materials": "node ./scripts/splitMaterials.mjs",
+    "build:plugins": "pnpm --filter @demo/tiny-engine-plugin-page build"
+  },
+  "devDependencies": {
+    "only-allow": "^1.2.1"
+  }
+}

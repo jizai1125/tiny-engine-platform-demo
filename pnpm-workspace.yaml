@@ -1,0 +1,4 @@
+packages:
+  - designer
+  - custom-plugins/*
+  - materials

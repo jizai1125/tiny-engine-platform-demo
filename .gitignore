@@ -1,0 +1,5 @@
+node_modules
+dist
+.DS_Store
+designer/public/materials/bundle.json
+.codex-logs
