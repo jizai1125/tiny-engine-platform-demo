@@ -1,8 +1,9 @@
 # Custom Page Plugin
 
-This package wraps `@opentiny/tiny-engine-plugin-page` and is the single entry point for future page type extensions.
+This package replaces the default TinyEngine page plugin in the designer registry.
 
-Current reserved contract:
+Current contract:
 
-- page type field: `pageSchema.pageType`
+- page type field: `page_content.pageType`
+- built-in page types: `form`, `flow`, `dashboard`
 - registry override target: `META_APP.Page`

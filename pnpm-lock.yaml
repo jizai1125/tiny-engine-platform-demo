@@ -17,6 +17,18 @@ importers:
       '@opentiny/tiny-engine-plugin-page':
         specifier: ^2.10.0
         version: 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
+      '@opentiny/vue':
+        specifier: ^3.20.0
+        version: 3.20.0(echarts@5.4.1)
+      '@opentiny/vue-icon':
+        specifier: ^3.20.0
+        version: 3.20.0
+      '@opentiny/vue-renderless':
+        specifier: ^3.20.0
+        version: 3.20.3
+      vue:
+        specifier: ^3.4.21
+        version: 3.5.34
 
   designer:
     dependencies:
@@ -28,7 +40,7 @@ importers:
         version: link:../custom-plugins/page
       '@opentiny/tiny-engine':
         specifier: ^2.10.0
-        version: 2.10.0(@opentiny/vue-design-smb@3.20.0)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue-runtime@3.30.0)(@opentiny/vue-theme@3.20.2)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(echarts@5.4.1)(eslint@8.57.1)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-router@4.6.3(vue@3.5.34))(vue@3.5.34)(zod@3.25.76)
+        version: 2.10.0(@opentiny/vue-design-smb@3.20.0)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue-runtime@3.30.0)(@opentiny/vue-theme@3.20.2)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(echarts@5.4.1)(eslint@8.57.1)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-router@4.6.3(vue@3.5.34))(vue@3.5.34)(zod@3.25.76)
       '@opentiny/tiny-engine-meta-register':
         specifier: ^2.10.0
         version: 2.10.0(@opentiny/vue-renderless@3.20.3)
@@ -1709,66 +1721,79 @@ packages:
     resolution: {integrity: sha512-DV6fJoxEYWJOvaZIsok7KrYl0tPvga5OZ2yvKHNNYyk/2roMLqQAbGhr78EQ5YhHpnhLKJD3S1WFusAkmUuV5g==}
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.60.3':
     resolution: {integrity: sha512-mQKoJAzvuOs6F+TZybQO4GOTSMUu7v0WdxEk24krQ/uUxXoPTtHjuaUuPmFhtBcM4K0ons8nrE3JyhTuCFtT/w==}
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.60.3':
     resolution: {integrity: sha512-Whjj2qoiJ6+OOJMGptTYazaJvjOJm+iKHpXQM1P3LzGjt7Ff++Tp7nH4N8J/BUA7R9IHfDyx4DJIflifwnbmIA==}
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.60.3':
     resolution: {integrity: sha512-4YTNHKqGng5+yiZt3mg77nmyuCfmNfX4fPmyUapBcIk+BdwSwmCWGXOUxhXbBEkFHtoN5boLj/5NON+u5QC9tg==}
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.60.3':
     resolution: {integrity: sha512-SU3kNlhkpI4UqlUc2VXPGK9o886ZsSeGfMAX2ba2b8DKmMXq4AL7KUrkSWVbb7koVqx41Yczx6dx5PNargIrEA==}
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-loong64-musl@4.60.3':
     resolution: {integrity: sha512-6lDLl5h4TXpB1mTf2rQWnAk/LcXrx9vBfu/DT5TIPhvMhRWaZ5MxkIc8u4lJAmBo6klTe1ywXIUHFjylW505sg==}
     cpu: [loong64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-ppc64-gnu@4.60.3':
     resolution: {integrity: sha512-BMo8bOw8evlup/8G+cj5xWtPyp93xPdyoSN16Zy90Q2QZ0ZYRhCt6ZJSwbrRzG9HApFabjwj2p25TUPDWrhzqQ==}
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-musl@4.60.3':
     resolution: {integrity: sha512-E0L8X1dZN1/Rph+5VPF6Xj2G7JJvMACVXtamTJIDrVI44Y3K+G8gQaMEAavbqCGTa16InptiVrX6eM6pmJ+7qA==}
     cpu: [ppc64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-gnu@4.60.3':
     resolution: {integrity: sha512-oZJ/WHaVfHUiRAtmTAeo3DcevNsVvH8mbvodjZy7D5QKvCefO371SiKRpxoDcCxB3PTRTLayWBkvmDQKTcX/sw==}
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.60.3':
     resolution: {integrity: sha512-Dhbyh7j9FybM3YaTgaHmVALwA8AkUwTPccyCQ79TG9AJUsMQqgN1DDEZNr4+QUfwiWvLDumW5vdwzoeUF+TNxQ==}
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.60.3':
     resolution: {integrity: sha512-cJd1X5XhHHlltkaypz1UcWLA8AcoIi1aWhsvaWDskD1oz2eKCypnqvTQ8ykMNI0RSmm7NkTdSqSSD7zM0xa6Ig==}
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.60.3':
     resolution: {integrity: sha512-DAZDBHQfG2oQuhY7mc6I3/qB4LU2fQCjRvxbDwd/Jdvb9fypP4IJ4qmtu6lNjes6B531AI8cg1aKC2di97bUxA==}
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.60.3':
     resolution: {integrity: sha512-cRxsE8c13mZOh3vP+wLDxpQBRrOHDIGOWyDL93Sy0Ga8y515fBcC2pjUfFwUe5T7tqvTvWbCpg1URM/AXdWIXA==}
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   '@rollup/rollup-openbsd-x64@4.60.3':
     resolution: {integrity: sha512-QaWcIgRxqEdQdhJqW4DJctsH6HCmo5vHxY0krHSX4jMtOqfzC+dqDGuHM87bu4H8JBeibWx7jFz+h6/4C8wA5Q==}
@@ -5198,10 +5223,10 @@ snapshots:
       - '@cfworker/json-schema'
       - supports-color
 
-  '@opentiny/tiny-engine-block-compiler@2.10.0(@babel/core@7.23.9)(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(vue@3.5.34)':
+  '@opentiny/tiny-engine-block-compiler@2.10.0(@babel/core@7.23.9)(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(vue@3.5.34)':
     dependencies:
       '@babel/core': 7.23.9
-      '@vue/babel-plugin-jsx': 1.5.0(@babel/core@7.18.13)
+      '@vue/babel-plugin-jsx': 1.5.0(@babel/core@7.29.0)
       '@vue/compiler-sfc': 3.5.34
       vue: 3.5.34
 
@@ -5495,9 +5520,9 @@ snapshots:
       - vite
       - vue-i18n
 
-  '@opentiny/tiny-engine-plugin-materials@2.10.0(@babel/core@7.23.9)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)':
+  '@opentiny/tiny-engine-plugin-materials@2.10.0(@babel/core@7.23.9)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)':
     dependencies:
-      '@opentiny/tiny-engine-block-compiler': 2.10.0(@babel/core@7.23.9)(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(vue@3.5.34)
+      '@opentiny/tiny-engine-block-compiler': 2.10.0(@babel/core@7.23.9)(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(vue@3.5.34)
       '@opentiny/tiny-engine-builtin-component': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue@3.5.34)
       '@opentiny/tiny-engine-common': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
       '@opentiny/tiny-engine-meta-register': 2.10.0(@opentiny/vue-renderless@3.20.3)
@@ -6278,7 +6303,7 @@ snapshots:
       - vite
       - vue-i18n
 
-  '@opentiny/tiny-engine@2.10.0(@opentiny/vue-design-smb@3.20.0)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue-runtime@3.30.0)(@opentiny/vue-theme@3.20.2)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(echarts@5.4.1)(eslint@8.57.1)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-router@4.6.3(vue@3.5.34))(vue@3.5.34)(zod@3.25.76)':
+  '@opentiny/tiny-engine@2.10.0(@opentiny/vue-design-smb@3.20.0)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue-runtime@3.30.0)(@opentiny/vue-theme@3.20.2)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(echarts@5.4.1)(eslint@8.57.1)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-router@4.6.3(vue@3.5.34))(vue@3.5.34)(zod@3.25.76)':
     dependencies:
       '@babel/core': 7.23.9
       '@babel/generator': 7.23.6
@@ -6295,7 +6320,7 @@ snapshots:
       '@opentiny/tiny-engine-plugin-datasource': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
       '@opentiny/tiny-engine-plugin-help': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(vue@3.5.34)
       '@opentiny/tiny-engine-plugin-i18n': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
-      '@opentiny/tiny-engine-plugin-materials': 2.10.0(@babel/core@7.23.9)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.18.13))(@vue/compiler-sfc@3.5.34)(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
+      '@opentiny/tiny-engine-plugin-materials': 2.10.0(@babel/core@7.23.9)(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(@vue/babel-plugin-jsx@1.5.0(@babel/core@7.29.0))(@vue/compiler-sfc@3.5.34)(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
       '@opentiny/tiny-engine-plugin-model-manager': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
       '@opentiny/tiny-engine-plugin-page': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)
       '@opentiny/tiny-engine-plugin-resource': 2.10.0(@opentiny/vue-icon@3.20.0)(@opentiny/vue-locale@3.20.0)(@opentiny/vue-renderless@3.20.3)(@opentiny/vue@3.20.0(echarts@5.4.1))(eslint@8.57.1)(sortablejs@1.15.7)(vite@5.4.21(@types/node@18.19.130)(less@4.6.4))(vue-i18n@9.14.5(vue@3.5.34))(vue@3.5.34)

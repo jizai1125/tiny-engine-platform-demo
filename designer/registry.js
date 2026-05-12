@@ -22,11 +22,11 @@ export default {
   'engine.config': {
     ...engineConfig
   },
-  [META_APP.Page]: customPagePlugin,
+  [META_APP.AppManage]: customPagePlugin,
   [META_APP.Layout]: {
     options: {
       relativeLayoutConfig: {
-        [META_APP.Page]: {
+        [META_APP.AppManage]: {
           insertBefore: META_APP.State
         },
         [META_APP.OutlineTree]: {
