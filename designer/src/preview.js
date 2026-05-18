@@ -11,6 +11,7 @@
  */
 import { defineEntry } from '@opentiny/tiny-engine-meta-register'
 import engineConfig from '../engine.config'
+import { GenerateCodeService } from './page-type/index.js'
 import 'virtual:svg-icons-register'
 
 async function startApp() {
@@ -23,6 +24,7 @@ async function startApp() {
 
   const registry = {
     [META_SERVICE.Http]: HttpService,
+    [META_SERVICE.GenerateCode]: GenerateCodeService,
     'engine.config': {
       ...engineConfig
     }

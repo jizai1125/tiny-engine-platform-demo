@@ -10,6 +10,7 @@
  *
  */
 import { configurators } from './configurators/'
+import { installPageTypeRenderer } from './page-type/index.js'
 import 'virtual:svg-icons-register'
 
 async function startApp() {
@@ -19,7 +20,12 @@ async function startApp() {
   init({
     registry: [registry.default],
     configurators,
-    createAppSignal: ['global_service_init_finish']
+    createAppSignal: ['global_service_init_finish'],
+    lifeCycles: {
+      beforeAppCreate: () => {
+        installPageTypeRenderer()
+      }
+    }
   })
 }
 

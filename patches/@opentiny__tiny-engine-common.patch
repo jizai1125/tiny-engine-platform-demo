@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index bd9a1e49732776bfe75615905ee1d2e1260c39d7..f7fd29b2ce4c6b6b7cbba7166224f7730c010392 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -353,7 +353,7 @@ const Ud = /* @__PURE__ */ ge(Bv, [["render", Kv], ["__scopeId", "data-v-1ccd099
+     }), p = ce(
+       () => {
+         var S, b, k, x, Z;
+-        return ((k = (b = (S = t.property) == null ? void 0 : S.label) == null ? void 0 : b.text) == null ? void 0 : k[s.value]) || ((Z = (x = t.property) == null ? void 0 : x.label) == null ? void 0 : Z.text) || t.property.property;
++        return ((k = (b = (S = t.property) == null ? void 0 : S.label) == null ? void 0 : b.text) == null ? void 0 : k[s.value]) || ((Z = (x = t.property) == null ? void 0 : x.label) == null ? void 0 : Z.text);
+       }
+     ), m = ce(() => Array.isArray(f.value.component)), g = be(!1), y = ce(
+       () => t.isTopLayer && g.value === !1 && (m.value || ["array", "object"].includes(t.property.type))

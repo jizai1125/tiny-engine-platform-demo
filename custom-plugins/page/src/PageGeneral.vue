@@ -19,11 +19,21 @@
           公共页面
         </tiny-radio>
       </tiny-form-item>
+
+      <tiny-form-item v-if="!isFolder" label="页面类型" class="form-item-page-type">
+        <tiny-radio
+          v-for="item in pageTypeOptions"
+          :key="item.value"
+          v-model="pageType"
+          class="page-type-radio"
+          :label="item.value"
+        >
+          {{ item.text }}
+        </tiny-radio>
+      </tiny-form-item>
+
       <tiny-form-item prop="name" :label="`${isFolder ? '文件夹' : '页面'}名称`">
-        <tiny-input
-          v-model="pageSettingState.currentPageData.name"
-          :placeholder="`请设置${isFolder ? '文件夹' : '页面'}名称`"
-        ></tiny-input>
+        <tiny-input v-model="pageSettingState.currentPageData.name" :placeholder="`请设置${isFolder ? '文件夹' : '页面'}名称`" />
       </tiny-form-item>
 
       <tiny-form-item
@@ -40,11 +50,11 @@
           placeholder="请选择父文件夹/父页面"
           popper-class="parent-fold-select-dropdown"
           @change="changeParentForderId"
-        ></tiny-select>
+        />
       </tiny-form-item>
 
       <tiny-form-item label="页面路由" prop="route">
-        <tiny-input v-model="pageSettingState.currentPageData.route" placeholder="请设置路由"></tiny-input>
+        <tiny-input v-model="pageSettingState.currentPageData.route" placeholder="请设置路由" />
         <div class="tip">
           <span class="text" v-if="!pageSettingState.currentPageData.route">路由将以 website.com 开头</span>
           <span class="route-text" v-else>
@@ -53,6 +63,7 @@
           </span>
         </div>
       </tiny-form-item>
+
       <tiny-form-item
         v-if="pageSettingState.currentPageData.group !== 'publicPages' && !isFolder && state.childPageOp?.length"
         label="设置默认跳转页"
@@ -63,7 +74,7 @@
           :options="state.childPageOp"
           placeholder="请选择默认跳转页"
           @change="changeDefaultPage"
-        ></tiny-select>
+        />
         <div v-if="state.defaultPageId" class="tip">
           <div class="tip-text">访问</div>
           <span class="tip-text-dim">/{{ currentRoute }}</span>
@@ -76,12 +87,17 @@
 </template>
 
 <script lang="jsx">
-/* metaService: engine.plugins.appmanage.PageGeneral */
-import { ref, computed, watchEffect, reactive } from 'vue'
-import { Form, FormItem, Input, Select, Radio } from '@opentiny/vue'
+import { computed, reactive, ref, watchEffect } from 'vue'
+import { Form, FormItem, Input, Radio, Select } from '@opentiny/vue'
 import { iconFile } from '@opentiny/vue-icon'
-import { usePage } from '@opentiny/tiny-engine-meta-register'
-import { REGEXP_PAGE_NAME, REGEXP_FOLDER_NAME, REGEXP_ROUTE } from '@opentiny/tiny-engine-common/js/verification'
+import { getOptions, usePage } from '@opentiny/tiny-engine-meta-register'
+import { REGEXP_FOLDER_NAME, REGEXP_PAGE_NAME, REGEXP_ROUTE } from '@opentiny/tiny-engine-common/js/verification'
+
+const fallbackPageTypes = [
+  { text: '表单页面', value: 'form' },
+  { text: '流程页面', value: 'flow' },
+  { text: '大屏页面', value: 'dashboard' }
+]
 
 export default {
   components: {
@@ -104,6 +120,30 @@ export default {
   setup() {
     const { pageSettingState, changeTreeData, STATIC_PAGE_GROUP_ID, getPageChildren } = usePage()
     const ROOT_ID = pageSettingState.ROOT_ID
+    const pluginOptions = computed(() => getOptions('engine.plugins.appmanage') || {})
+    const pageTypeOptions = computed(() => pluginOptions.value.pageTypes || fallbackPageTypes)
+    const defaultPageType = computed(() => pluginOptions.value.defaultPageType || pageTypeOptions.value[0]?.value || 'form')
+
+    const ensureCurrentPageType = () => {
+      if (!pageSettingState.currentPageData.page_content) {
+        pageSettingState.currentPageData.page_content = {}
+      }
+
+      if (!pageSettingState.currentPageData.page_content.pageType) {
+        pageSettingState.currentPageData.page_content.pageType = defaultPageType.value
+      }
+    }
+
+    const pageType = computed({
+      get() {
+        ensureCurrentPageType()
+        return pageSettingState.currentPageData.page_content.pageType
+      },
+      set(value) {
+        ensureCurrentPageType()
+        pageSettingState.currentPageData.page_content.pageType = value
+      }
+    })
 
     const pageParentId = computed({
       get() {
@@ -129,15 +169,13 @@ export default {
       } else {
         state.childPageList = await getPageChildren(id)
         const defaultPage = state.childPageList?.find((item) => item.isDefault)
-        pageSettingState.defaultPage = defaultPage ? defaultPage : null
+        pageSettingState.defaultPage = defaultPage || null
         state.defaultPageId = defaultPage ? defaultPage.id : ''
-        state.childPageOp = state.childPageList.map((item) => {
-          return {
-            value: item.id,
-            label: item.name,
-            icon: iconFile()
-          }
-        })
+        state.childPageOp = state.childPageList.map((item) => ({
+          value: item.id,
+          label: item.name,
+          icon: iconFile()
+        }))
       }
     }
 
@@ -147,6 +185,7 @@ export default {
 
     watchEffect(() => {
       oldParentId.value = pageSettingState.oldParentId
+      ensureCurrentPageType()
       setChildAndDefaultPage(pageSettingState.currentPageData?.id)
     })
 
@@ -156,12 +195,15 @@ export default {
 
       while (parentId !== ROOT_ID) {
         const parent = pageSettingState.treeDataMapping[parentId]
+
         if (!parent) {
           break
         }
+
         route = `${parent.route}/${route}`
         parentId = parent.parentId
       }
+
       if (route.startsWith('/')) {
         route = route.slice(1)
       }
@@ -189,32 +231,36 @@ export default {
         },
         {
           pattern: REGEXP_ROUTE,
-          message: '仅允许包含英文字母、数字、下划线_、中划线-、斜杠/，且以英文字母开头'
+          message: '仅允许包含英文字母、数字、下划线 _、中划线 -、斜杠 /，且以英文字母开头'
         }
       ]
     }
+
     const folderRules = {
       name: [
         { required: true, message: '请输入页面文件夹 ID' },
         {
           pattern: REGEXP_FOLDER_NAME,
-          message: '仅允许包含英文字母、数字、下划线_、中划线-，且以英文字母开头'
+          message: '仅允许包含英文字母、数字、下划线 _、中划线 -，且以英文字母开头'
         },
-        { min: 3, max: 25, message: '长度需在 3 到 25 个字符之间' }
+        {
+          min: 3,
+          max: 25,
+          message: '长度需在 3 到 25 个字符之间'
+        }
       ],
       route: [
         { required: true, message: '请输入页面文件夹路由' },
         {
           pattern: REGEXP_ROUTE,
-          message: '仅允许包含英文字母、数字、下划线_、中划线-、斜杠/，且以英文字母开头'
+          message: '仅允许包含英文字母、数字、下划线 _、中划线 -、斜杠 /，且以英文字母开头'
         }
       ],
       group: [{ required: true, message: '必须选择页面分组' }]
     }
 
     const pageToTreeData = (page) => {
-      const { id, name, isPage, children } = page
-
+      const { children, id, isPage, name } = page
       const result = { id: String(id), name, isPage }
 
       if (Array.isArray(children)) {
@@ -242,21 +288,18 @@ export default {
       const staticPages = pageSettingState.pages[STATIC_PAGE_GROUP_ID]?.data || []
       const dummyRoot = pageToTreeData({ children: [{ name: '根目录', id: ROOT_ID }].concat(staticPages) })
       const data = dummyRoot.children
-      const options = {
+
+      return {
         data,
         shrinkIcon: null,
         expandIcon: null,
-        renderContent: (_h, { node, data }) => {
-          return (
-            <>
-              {getNodeIcon(data)}
-              <div>{node.label}</div>
-            </>
-          )
-        }
+        renderContent: (_h, { node, data }) => (
+          <>
+            {getNodeIcon(data)}
+            <div>{node.label}</div>
+          </>
+        )
       }
-
-      return options
     })
 
     const generalForm = ref(null)
@@ -276,17 +319,19 @@ export default {
     }
 
     return {
-      pageRules,
-      folderRules,
-      pageSettingState,
-      pageParentId,
-      generalForm,
-      validGeneralForm,
-      treeFolderOp,
-      currentRoute,
+      changeDefaultPage,
       changeParentForderId,
+      currentRoute,
+      folderRules,
+      generalForm,
+      pageParentId,
+      pageRules,
+      pageSettingState,
+      pageType,
+      pageTypeOptions,
       state,
-      changeDefaultPage
+      treeFolderOp,
+      validGeneralForm
     }
   }
 }
@@ -298,15 +343,19 @@ export default {
     .input-head {
       color: var(--te-page-manage-input-head-text-color);
     }
+
     :deep(.tiny-form-item) {
       margin-bottom: 16px;
+
       .tiny-input-group__prepend {
         border: 1px solid var(--te-page-manage-input-border-color);
         background: var(--te-page-manage-input-bg-color);
       }
+
       .page-type-radio {
         color: var(--te-page-manage-title-text-color);
       }
+
       .tiny-form-item__label {
         height: 24px;
         line-height: 18px;
@@ -315,6 +364,7 @@ export default {
       }
     }
   }
+
   .tip {
     color: var(--te-page-manage-tip-color);
     font-size: 12px;
@@ -324,48 +374,61 @@ export default {
     word-wrap: break-word;
     height: auto;
     line-height: 16px;
+
     .text {
       color: var(--te-page-manage-tip-text-color);
     }
+
     .tip-text {
       width: 100%;
       color: var(--te-page-manage-tip-text-color);
     }
+
     .tip-text-dim {
       color: var(--te-page-manage-tip-dim-text-color);
     }
   }
 }
 </style>
+
 <style lang="less">
 .tiny-select-dropdown.parent-fold-select-dropdown {
   padding: 8px;
+
   .tiny-tree {
     .tiny-tree-node {
       .tiny-tree-node__content {
         padding: 0;
         background-color: var(--te-page-manage-tree-node-bg-color);
+
         &:hover {
           background-color: var(--te-page-manage-tree-node-bg-color-hover);
         }
+
         .tiny-tree-node__content-left,
         .tiny-tree-node__content-left .tiny-tree-node__content-box {
           background-color: unset;
+
           &:hover {
             background-color: unset;
           }
         }
+
         .tiny-tree-node__content-left {
           padding: 0;
+
           .tree-node-icon {
             margin: 0;
           }
+
           .tiny-tree-node__content-box {
             padding: 0 12px;
+
             svg {
               margin-right: 8px;
             }
           }
+
           .tiny-tree-node__label {
             font-size: 12px;
           }

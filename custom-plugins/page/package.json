@@ -4,11 +4,22 @@
   "version": "0.0.0",
   "type": "module",
   "main": "index.js",
+  "module": "index.js",
   "scripts": {
-    "build": "node -e \"console.log('custom page wrapper has no build output')\""
+    "build": "vite build"
   },
   "dependencies": {
-    "@opentiny/tiny-engine-plugin-page": "^2.10.0"
+    "@opentiny/tiny-engine-common": "^2.10.0",
+    "@opentiny/tiny-engine-meta-register": "^2.10.0",
+    "@opentiny/tiny-engine-plugin-page": "^2.10.0",
+    "@opentiny/tiny-engine-utils": "^2.10.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@opentiny/tiny-engine-vite-plugin-meta-comments": "^2.10.0",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitejs/plugin-vue-jsx": "^4.0.1",
+    "vite": "^5.4.2"
   },
   "peerDependencies": {
     "@opentiny/vue": "^3.20.0",

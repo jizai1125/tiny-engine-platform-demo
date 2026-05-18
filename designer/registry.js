@@ -13,12 +13,14 @@ import { META_SERVICE, META_APP } from '@opentiny/tiny-engine-meta-register'
 import customPagePlugin from '@demo/tiny-engine-plugin-page'
 import engineConfig from './engine.config'
 import { HttpService } from './src/composable'
+import { GenerateCodeService } from './src/page-type/index.js'
 
 const baseURL = import.meta.env.BASE_URL || '.'
 const baseURLWithoutSlash = baseURL.replace(/\/$/, '')
 
 export default {
   [META_SERVICE.Http]: HttpService,
+  [META_SERVICE.GenerateCode]: GenerateCodeService,
   'engine.config': {
     ...engineConfig
   },
