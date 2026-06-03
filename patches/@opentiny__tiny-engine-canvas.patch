@@ -1,0 +1,53 @@
+diff --git a/dist/render.js b/dist/render.js
+index a3a5a27..030dc56 100644
+--- a/dist/render.js
++++ b/dist/render.js
+@@ -78691,21 +78691,39 @@ function kK() {
+   };
+ }
+ const DK = Function;
++const qK = (e) => {
++  if (e && typeof e == "object")
++    return e;
++  if (typeof e == "string")
++    try {
++      const t = JSON.parse(e);
++      return t && typeof t == "object" ? t : {};
++    } catch {
++      return {};
++    }
++  return {};
++}, WK = (e) => {
++  if (typeof e == "string")
++    return e;
++  if (e && typeof e == "object" && "value" in e && typeof e.value == "string")
++    return e.value;
++  return "";
++};
+ function BK() {
+   const e = rn([]), t = (i = []) => {
+     e.value = i;
+   }, s = Ou({});
+   return ng(() => {
+     jd(s), e.value.forEach(({ id: i, state: o = {}, getters: l = {} }) => {
+-      const u = Object.keys(l).reduce(
+-        (p, f) => ({
+-          ...p,
+-          [f]: new DK("return " + l[f])().call(p, o)
+-          // parseData(getters[key], null, acc)?.call?.(acc, state)  //理论上不应该走parseData, unibuy代码遗留
+-        }),
+-        {}
+-      );
+-      s[i] = { ...o, ...u };
++      const u = qK(o), p = Object.keys(l).reduce((f, m) => {
++        const g = WK(l[m]);
++        return g ? {
++          ...f,
++          [m]: new DK("return " + g)().call(f, u)
++          // parseData(getters[key], null, acc)?.call?.(acc, state)  //理论上不应该走parseData, unibuy代码遗留
++        } : f;
++      }, {});
++      s[i] = { ...u, ...p };
+     });
+   }), {
+     globalState: e,

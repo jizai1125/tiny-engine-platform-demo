@@ -10,6 +10,7 @@ const distBundlePath = path.join(rootDir, 'materials', 'dist', 'bundle.json')
 const publicBundlePath = path.join(rootDir, 'designer', 'public', 'materials', 'bundle.json')
 
 const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'))
+const getSnippetKey = (snippet) => snippet?.schema?.componentName || snippet?.snippetName
 
 const writeJson = async (filePath, content) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -27,6 +28,34 @@ const listComponentFiles = async () => {
 
     throw error
   }
+}
+
+const mergeComponentSnippets = (nextBundle, componentName, category, snippets) => {
+  if (!Array.isArray(snippets)) {
+    return
+  }
+
+  const snippetGroups = nextBundle.data?.materials?.snippets || []
+
+  for (const snippetGroup of snippetGroups) {
+    snippetGroup.children = (snippetGroup.children || []).filter((snippet) => getSnippetKey(snippet) !== componentName)
+  }
+
+  if (!category) {
+    return
+  }
+
+  let snippetGroup = snippetGroups.find((item) => item.group === category)
+
+  if (!snippetGroup) {
+    snippetGroup = {
+      group: category,
+      children: []
+    }
+    snippetGroups.push(snippetGroup)
+  }
+
+  snippetGroup.children.push(...snippets.map(({ category: _category, ...snippet }) => snippet))
 }
 
 const mergeComponentSchemas = async (bundle) => {
@@ -48,7 +77,13 @@ const mergeComponentSchemas = async (bundle) => {
       continue
     }
 
-    componentMap.set(component.component, component)
+    const { snippets, category, ...componentInfo } = component
+
+    componentMap.set(component.component, {
+      category,
+      ...componentInfo
+    })
+    mergeComponentSnippets(nextBundle, component.component, category, snippets)
   }
 
   nextBundle.data.materials.components = Array.from(componentMap.values())
