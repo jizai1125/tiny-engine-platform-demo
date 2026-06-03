@@ -7,7 +7,7 @@
     "dev:designer": "pnpm --filter designer dev",
     "build:materials": "node ./scripts/buildMaterials.mjs",
     "split:materials": "node ./scripts/splitMaterials.mjs",
-    "build:plugins": "pnpm --filter @demo/tiny-engine-plugin-page build"
+    "build:plugins": "pnpm --filter @demo/tiny-engine-plugin-page build && pnpm --filter @demo/tiny-engine-plugin-robot build"
   },
   "devDependencies": {
     "only-allow": "^1.2.1"

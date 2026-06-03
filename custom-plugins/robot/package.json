@@ -1,0 +1,40 @@
+{
+  "name": "@demo/tiny-engine-plugin-robot",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "vite build"
+  },
+  "type": "module",
+  "main": "index.ts",
+  "module": "index.ts",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.2",
+    "@opentiny/tiny-engine-common": "^2.10.0",
+    "@opentiny/tiny-engine-meta-register": "^2.10.0",
+    "@opentiny/tiny-engine-utils": "^2.10.0",
+    "@opentiny/tiny-robot": "0.3.1",
+    "@opentiny/tiny-robot-kit": "0.3.1",
+    "@opentiny/tiny-robot-svgs": "0.3.1",
+    "@opentiny/tiny-schema-renderer": "1.0.0-beta.6",
+    "@vueuse/core": "^9.13.0",
+    "dompurify": "^3.0.1",
+    "fast-json-patch": "~3.1.1",
+    "highlight.js": "^11.11.1",
+    "jsonrepair": "3.13.0",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@opentiny/tiny-engine-vite-plugin-meta-comments": "^2.10.0",
+    "@types/markdown-it": "^14.1.2",
+    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitejs/plugin-vue-jsx": "^4.0.1",
+    "vite": "^5.4.2"
+  },
+  "peerDependencies": {
+    "@opentiny/vue": "^3.20.0",
+    "@opentiny/vue-icon": "^3.20.0",
+    "@opentiny/vue-renderless": "^3.20.0",
+    "vue": "^3.4.15"
+  }
+}

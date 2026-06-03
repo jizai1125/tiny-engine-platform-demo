@@ -11,6 +11,7 @@
  */
 import { META_SERVICE, META_APP } from '@opentiny/tiny-engine-meta-register'
 import customPagePlugin from '@demo/tiny-engine-plugin-page'
+import customRobotPlugin from '@demo/tiny-engine-plugin-robot'
 import engineConfig from './engine.config'
 import { HttpService } from './src/composable'
 import { GenerateCodeService } from './src/page-type/index.js'
@@ -25,6 +26,7 @@ export default {
     ...engineConfig
   },
   [META_APP.AppManage]: customPagePlugin,
+  [META_APP.Robot]: customRobotPlugin,
   [META_APP.Layout]: {
     options: {
       relativeLayoutConfig: {
