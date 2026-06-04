@@ -131,22 +131,98 @@ export const isValidFastJsonPatch = (patch: any): boolean => {
 /**
  * 自动修复JSON Patch数组，过滤无效操作
  */
-export const jsonPatchAutoFix = (jsonPatches: any[], isFinial: boolean) => {
+export const jsonPatchAutoFix = (jsonPatches: any, isFinial: boolean) => {
   // 流式渲染过程中，画布只渲染完整的字段或流式的children字段，避免不完整的methods/states/css等字段导致解析报错
   const childrenFilter = (patch: any, index: number, arr: any[]) =>
     isFinial || index < arr.length - 1 || (index === arr.length - 1 && patch.path?.startsWith('/children'))
-  const validJsonPatches = jsonPatches.filter(childrenFilter).filter(isValidFastJsonPatch)
+
+  // 流式预览阶段可能只解析出单个 patch 对象，统一转成数组再走过滤逻辑。
+  const patchList = Array.isArray(jsonPatches) ? jsonPatches : [jsonPatches]
+  const validJsonPatches = patchList.filter(childrenFilter).filter(isValidFastJsonPatch)
 
   return validJsonPatches
+}
+
+const stripThinkingContent = (content: string) => content.replace(/<think>[\s\S]*?<\/think>/gi, '')
+
+// 按括号平衡提取候选 JSON，避免函数字符串或说明文本中的中括号干扰截取。
+const findBalancedJsonString = (content: string, startIndex: number): string => {
+  const startChar = content[startIndex]
+  const endChar = startChar === '[' ? ']' : '}'
+  let depth = 0
+  let inString = false
+  let isEscaped = false
+
+  for (let index = startIndex; index < content.length; index++) {
+    const char = content[index]
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false
+      } else if (char === '\\') {
+        isEscaped = true
+      } else if (char === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+    } else if (char === startChar) {
+      depth++
+    } else if (char === endChar) {
+      depth--
+      if (depth === 0) {
+        return content.slice(startIndex, index + 1)
+      }
+    }
+  }
+
+  return ''
+}
+
+const findJsonPatchString = (content: string): string => {
+  for (let index = 0; index < content.length; index++) {
+    if (content[index] !== '[' && content[index] !== '{') {
+      continue
+    }
+
+    const jsonString = findBalancedJsonString(content, index)
+    if (!jsonString) {
+      continue
+    }
+
+    try {
+      // 只接受合法 JSON Patch，跳过说明文本里其他看起来像 JSON 的片段。
+      if (isValidFastJsonPatch(JSON.parse(jsonString))) {
+        return jsonString
+      }
+    } catch {
+      // ignore invalid candidates
+    }
+  }
+
+  return ''
 }
 
 /**
  * 从流式内容中提取JSON对象字符串
  */
 export const getJsonObjectString = (streamContent: string): string => {
-  const regex = /```(json|schema)?([\s\S]*?)```/
-  const match = streamContent.match(regex)
-  return (match && match[2]) || streamContent
+  const regex = /```(json|schema)?([\s\S]*?)```/g
+  const fencedMatches = [...streamContent.matchAll(regex)]
+
+  for (const match of fencedMatches) {
+    const jsonPatchString = findJsonPatchString(match[2])
+    if (jsonPatchString) {
+      return jsonPatchString
+    }
+  }
+
+  // 部分模型可能把思考过程和解释文本混进 content，最终只保留可执行的 JSON Patch。
+  const contentWithoutThinking = stripThinkingContent(streamContent)
+  return findJsonPatchString(contentWithoutThinking) || contentWithoutThinking
 }
 
 /**

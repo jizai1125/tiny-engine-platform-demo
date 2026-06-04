@@ -5,7 +5,13 @@ import { useCanvas, useHistory } from '@opentiny/tiny-engine-meta-register'
 import { useThrottleFn } from '@vueuse/core'
 import useModelConfig from './useConfig'
 import { ChatMode } from '../../types/mode.types'
-import { fixMethods, schemaAutoFix, getJsonObjectString, isValidFastJsonPatch, jsonPatchAutoFix } from '../../utils'
+import {
+  fixMethods,
+  schemaAutoFix,
+  getJsonObjectString,
+  isValidFastJsonPatch,
+  jsonPatchAutoFix
+} from '../../utils'
 
 const { deepClone } = utils
 
@@ -33,7 +39,7 @@ const _updatePageSchema = (
   }
 
   // 解析流式返回的schema patch
-  let content = getJsonObjectString(streamContent)
+  let content = isFinal ? getJsonObjectString(streamContent) : streamContent
   let jsonPatches = []
   try {
     if (!isFinal) {
@@ -51,13 +57,20 @@ const _updatePageSchema = (
   if (!isFinal && !isValidFastJsonPatch(jsonPatches)) {
     return { isError: true, error: 'format error: not a valid json patch.' }
   }
+
   const validJsonPatches = jsonPatchAutoFix(jsonPatches, isFinal)
+  if (!validJsonPatches.length) {
+    return { isError: true, error: 'format error: no valid json patch.' }
+  }
 
   // 生成新schema
   const originSchema = deepClone(currentPageSchema)
+  let appliedPatchCount = 0
   const newSchema = validJsonPatches.reduce((acc: object, patch: any) => {
     try {
-      return jsonpatch.applyPatch(acc, [patch], false, false).newDocument
+      const nextSchema = jsonpatch.applyPatch(acc, [patch], false, false).newDocument
+      appliedPatchCount++
+      return nextSchema
     } catch (error) {
       if (isFinal) {
         logger.error('apply patch error:', error, patch)
@@ -65,6 +78,10 @@ const _updatePageSchema = (
       return acc
     }
   }, originSchema)
+
+  if (!appliedPatchCount) {
+    return { isError: true, error: 'apply patch error: no patch applied.' }
+  }
 
   // schema纠错
   fixMethods(newSchema.methods)
@@ -79,4 +96,16 @@ const _updatePageSchema = (
   return { schema: newSchema, isError: false }
 }
 
-export const updatePageSchema = useThrottleFn(_updatePageSchema, 200, true)
+const updatePageSchemaThrottled = useThrottleFn(_updatePageSchema, 200, true)
+
+export const updatePageSchema = (
+  streamContent: string,
+  currentPageSchema: object,
+  isFinal: boolean = false
+): UpdateResult | Promise<UpdateResult> => {
+  if (isFinal) {
+    return _updatePageSchema(streamContent, currentPageSchema, true)
+  }
+
+  return updatePageSchemaThrottled(streamContent, currentPageSchema, false)
+}

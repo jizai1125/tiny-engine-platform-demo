@@ -12,7 +12,13 @@
 
 import { getMetaApi, META_SERVICE, useCanvas, useMaterial } from '@opentiny/tiny-engine-meta-register'
 import { utils } from '@opentiny/tiny-engine-utils'
-import { isValidJsonPatchObjectString, getRobotServiceOptions, removeLoading, addSystemPrompt } from '../../utils'
+import {
+  isValidJsonPatchObjectString,
+  getJsonObjectString,
+  getRobotServiceOptions,
+  removeLoading,
+  addSystemPrompt
+} from '../../utils'
 import { updatePageSchema } from '../core/pageUpdater'
 import useModelConfig from '../core/useConfig'
 import { formatComponents, getAgentSystemPrompt, getJsonFixPrompt } from '../../constants/prompts'
@@ -58,6 +64,47 @@ const ensureLastRenderContent = (message: any, contentType: string, status?: str
   }
 
   return lastRenderContent
+}
+
+const finishReasoningRenderContent = (message: any) => {
+  message.renderContent?.forEach((item: any) => {
+    if (item.contentType === 'reasoning' && item.status === 'reasoning') {
+      item.status = 'finish'
+    }
+  })
+}
+
+const removePendingLoadingRenderContent = (message: any) => {
+  if (!message.renderContent?.length) {
+    return
+  }
+
+  message.renderContent = message.renderContent.filter((item: any) => !item.type?.includes('loading'))
+}
+
+// AgentRenderer 的 loading/success/failed 只看消息自身 renderContent.status。
+// 收尾时必须清掉残留 loading，并补一个明确的 agent-content 结果项。
+const ensureAgentResultRenderContent = (message: any, contentType: string, status: 'success' | 'failed') => {
+  finishReasoningRenderContent(message)
+  removePendingLoadingRenderContent(message)
+
+  if (!message.renderContent?.length) {
+    message.renderContent = [{ type: contentType, content: message.content || '', status }]
+    return message.renderContent.at(-1)
+  }
+
+  let resultRenderContent = message.renderContent.findLast((item: any) => item.type === contentType)
+  if (!resultRenderContent) {
+    resultRenderContent = { type: contentType, content: message.content || '', status }
+    message.renderContent.push(resultRenderContent)
+  }
+
+  resultRenderContent.status = status
+  if (!resultRenderContent.content) {
+    resultRenderContent.content = message.content || ''
+  }
+
+  return resultRenderContent
 }
 
 /**
@@ -160,10 +207,9 @@ export default function useAgentMode(): ModeHooks {
     extraData?: Record<string, unknown>
   ) => {
     if (finishReason === 'aborted' || finishReason === 'error') {
-      removeLoading(messages)
       const errorInfo = { content: extraData?.error || '请求失败', status: 'failed' }
       const lastMessage = messages.at(-1)
-      const lastRenderContent = ensureLastRenderContent(lastMessage, getContentType(), 'failed')
+      const lastRenderContent = ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
       Object.assign(lastRenderContent, errorInfo)
     }
   }
@@ -201,7 +247,14 @@ export default function useAgentMode(): ModeHooks {
     const lastMessage = messages.at(-1)
 
     if (finishReason === 'aborted' || finishReason === 'error') {
-      ensureLastRenderContent(lastMessage, getContentType(), 'failed')
+      ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+      pageSchema = null
+      return
+    }
+
+    if (!content?.trim() && !lastMessage?.content?.trim()) {
+      ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+      pageSchema = null
       return
     }
 
@@ -230,13 +283,24 @@ export default function useAgentMode(): ModeHooks {
           messages: [{ role: 'user', content: getJsonFixPrompt(content, jsonValidResult.error) }],
           options: { signal: abortControllerMap.errorFix?.signal, beforeRequest: beforeRequest as any, apiUrl }
         })
-        if (!isValidJsonPatchObjectString(fixedResponse.choices[0].message.content).isError) {
-          lastMessage.originContent = lastMessage.content
-          lastMessage.content = fixedResponse.choices[0].message.content
+        const fixedContent = fixedResponse.choices[0].message.content
+        const fixedJsonValidResult = isValidJsonPatchObjectString(fixedContent)
+        if (fixedJsonValidResult.isError) {
+          // 修复接口也可能返回 <think> 或解释文本；仍非法时直接失败，避免继续把原文传给 updatePageSchema。
+          ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+          messageState.status = STATUS.ERROR
+          messageState.errorMsg = `JSON 修复失败：${fixedJsonValidResult.error}`
+          delete abortControllerMap.errorFix
+          pageSchema = null
+          return
         }
+
+        lastMessage.originContent = lastMessage.content
+        // 后续页面更新只消费纯 JSON Patch，不再消费模型的解释文本。
+        lastMessage.content = getJsonObjectString(fixedContent)
       } catch (error) {
         logger.error('json fix failed', error)
-        ensureLastRenderContent(lastMessage, getContentType(), 'failed')
+        ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
         if (error instanceof Error && error.message.includes('canceled')) {
           messageState.status = STATUS.ABORTED
         } else {
@@ -244,19 +308,31 @@ export default function useAgentMode(): ModeHooks {
           messageState.errorMsg = `JSON 修复失败：${error}`
         }
         delete abortControllerMap.errorFix
+        pageSchema = null
         return
       }
       delete abortControllerMap.errorFix
+    } else {
+      // 主响应已经可解析时也统一落成纯 JSON Patch，避免最终解析被 <think>/说明文本污染。
+      lastMessage.content = getJsonObjectString(content)
     }
 
     // 更新页面 schema
-    const result = await updatePageSchema(lastMessage.content, pageSchema, true)
-    const lastRenderContent = ensureLastRenderContent(lastMessage, getContentType())
-    if (result.schema) {
-      lastRenderContent.status = 'success'
-      lastRenderContent.schema = result.schema
-    } else {
-      lastRenderContent.status = 'failed'
+    try {
+      const result = await updatePageSchema(lastMessage.content, pageSchema, true)
+      const lastRenderContent = ensureAgentResultRenderContent(
+        lastMessage,
+        getContentType(),
+        result.schema ? 'success' : 'failed'
+      )
+      if (result.schema) {
+        lastRenderContent.schema = result.schema
+      }
+    } catch (error) {
+      logger.error('update page schema failed', error)
+      ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+      messageState.status = STATUS.ERROR
+      messageState.errorMsg = `页面更新失败：${error}`
     }
 
     pageSchema = null
