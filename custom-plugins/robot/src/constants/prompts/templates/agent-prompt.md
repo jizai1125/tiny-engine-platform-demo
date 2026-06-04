@@ -78,6 +78,7 @@ Constraint Rules:
           * ❌ Wrong: `"console.log(\`hello ${name}\`)"`
           * ✅ Correct: `"console.log('hello ' + name)"`
       * In JavaScript code strings, prefer single quotes for string literals to avoid escaping double quotes
+      * For `JSFunction.value` in `methods` and `lifeCycles`, use exactly one JSON newline escape `\n` between code lines. NEVER output double-escaped newlines `\\n` in function source, because after `JSON.parse()` they remain literal backslash-n characters and will break function parsing.
       * Newlines in CSS style strings MUST be escaped as `\n`
   * **Placeholder Resources**: When placeholder resources are needed, use these links:
       * Images: `"src": "https://placehold.co/600x400"`
@@ -183,6 +184,7 @@ interface ComponentSchema { // Component schema
 - Loop: When rendering multiple identical components, use loop feature, similar to v-for in Vue. loop property is the array to iterate, loopArgs property represents each array item, key property can represent each item's index. Example: `{ "componentName": "div", "props": { "key": { "type": "JSExpression", "value": "index" } }, "children": [ { "componentName": "Text", "props": { "style": "display: inline-block;", "text": { "type": "JSExpression", "value": "message.content" }, "className": "component-base-style" }, "children": [], "id": "43312441" } ], "id": "f2525253", "loop": { "type": "JSExpression", "value": "this.state.messages" }, "loopArgs": ["message", "index"] }`
 - Reactive watch: Used to watch variable values, similar to watch in Vue. When using watch, need to combine with setup passing watch. Example: `{ "lifeCycles": { "setup": { "type": "JSFunction", "value": "function setup({ props, state, watch }) {\n  watch(() => props.list, (list) => { cloumnsVisibledSetting(list) }, { deep: true } )\n}" } } }`
 - Method invocation: When calling another method within a method, use `this.methodName()` invocation. Example: `{ "methods": { "handleBtnClick": { "type": "JSFunction", "value": "function handleBtnClick(event) {\n  console.log('button click')\n  this.test('test')\n}\n" }, "test": { "type": "JSFunction", "value": "function test(name) {\n  console.log('test', name)\n}\n" } } }`
+- Method newline escaping: In `methods` and other `JSFunction.value` fields, line breaks in the raw JSON output MUST be single JSON escapes like `\n`, not double-escaped `\\n`. Correct: `"value":"function submit() {\n  alert('ok')\n}"`. Wrong: `"value":"function submit() {\\n  alert('ok')\\n}"`.
 
 ### 3.3 Component Rules
 
