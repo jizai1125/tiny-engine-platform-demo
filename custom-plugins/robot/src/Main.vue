@@ -64,7 +64,7 @@
               @update:active="toggleActive"
             >
               <template #icon>
-                <svg-icon name="think" class="icon-think"></svg-icon>
+                <IconThink class="icon-think"></IconThink>
               </template>
               <template #text>深度思考</template>
             </footer-button>
@@ -81,7 +81,7 @@ import { computed, h, onMounted, ref, watch } from 'vue'
 import { ToolbarBase } from '@opentiny/tiny-engine-common'
 import { META_APP, META_SERVICE, getMetaApi, useLayout, useNotify } from '@opentiny/tiny-engine-meta-register'
 import { type PopupConfig, type PromptProps, TrIconButton } from '@opentiny/tiny-robot'
-import { IconNewSession } from '@opentiny/tiny-robot-svgs'
+import { IconNewSession, IconThink } from '@opentiny/tiny-robot-svgs'
 import RobotChat from './components/chat/RobotChat.vue'
 import FooterButton from './components/chat/FooterButton.vue'
 import { IconMcp, IconPage, IconStudy } from './components/icons'
@@ -283,11 +283,10 @@ onMounted(async () => {
 
 .setting-icon {
   cursor: pointer;
-}
-
-.operations-setting {
-  font-size: 28px;
-  padding: 4px;
+  .operations-setting {
+    font-size: 28px;
+    padding: 4px;
+  }
 }
 
 .robot-chat-container-fullscreen {
