@@ -6,7 +6,12 @@ export interface ConversationAdapterOptions {
   client: AIClient
   // 业务回调函数
   onStreamData: (data: any, messages: any[]) => void
-  onFinishRequest: (finishReason: string, messages: any[], contextMessages: any[], messageState: any) => Promise<void>
+  onFinishRequest: (
+    finishReason: string,
+    messages: any[],
+    contextMessages: any[],
+    messageState: any
+  ) => Promise<string>
   onMessageProcessed: (finishReason: string, content: any, messages: any[], context: any) => Promise<void>
   statusManager: {
     isProcessing: () => boolean
@@ -26,6 +31,8 @@ export interface ConversationMetadata {
  */
 export function useConversationAdapter(options: ConversationAdapterOptions) {
   const { client, onStreamData, onFinishRequest, onMessageProcessed, statusManager } = options
+  // finish 去重绑定到最后一条 assistant 消息，避免 chatStatus 在 streaming/processing 间切换时误拦截正常收尾。
+  const handledFinishMessages = new WeakSet<object>()
 
   // 构建 events 适配器，连接业务回调
   const events: UseMessageOptions['events'] = {
@@ -35,18 +42,34 @@ export function useConversationAdapter(options: ConversationAdapterOptions) {
     },
     async onFinish(finishReason, { messages, messageState }, preventDefault) {
       preventDefault()
-      if (statusManager.isProcessing()) {
+
+      const lastMessage = messages.value.at(-1)
+      if (!lastMessage || typeof lastMessage !== 'object') {
+        return
+      }
+
+      if (handledFinishMessages.has(lastMessage)) {
         // 无效场景，直接返回，例如返回流中出现了多次 [Done], 只响应第一次
         return
-      } else {
-        statusManager.setProcessing()
       }
-      const contextMessages = toRaw(messages.value.slice(0, -1))
-      await onFinishRequest(finishReason ?? 'unknown', messages.value, contextMessages, messageState)
-      const lastMessage = messages.value.at(-1)
-      if (lastMessage && finishReason === 'stop' && !lastMessage.tool_calls && statusManager.isProcessing()) {
+      handledFinishMessages.add(lastMessage)
+
+      // 这里只表示正在执行 finish 收尾，不再作为是否允许进入 finish 的判断依据。
+      statusManager.setProcessing()
+      try {
+        const contextMessages = toRaw(messages.value.slice(0, -1))
+        const resolvedFinishReason = await onFinishRequest(
+          finishReason ?? 'unknown',
+          messages.value,
+          contextMessages,
+          messageState
+        )
+
+        if (resolvedFinishReason === 'stop' && !lastMessage.tool_calls) {
+          await onMessageProcessed(resolvedFinishReason, lastMessage.content ?? '', messages.value, {})
+        }
+      } finally {
         statusManager.resetProcessing()
-        await onMessageProcessed(finishReason ?? 'unknown', lastMessage.content ?? '', messages.value, {})
       }
     }
   }

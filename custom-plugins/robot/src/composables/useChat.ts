@@ -80,6 +80,34 @@ const initChatClient = () => {
   updateConfig(config)
 }
 
+const normalizeFinishReason = (
+  finishReason: string,
+  lastMessage: ChatMessage | undefined,
+  messageState: MessageState
+) => {
+  if (finishReason && finishReason !== 'unknown') {
+    return finishReason
+  }
+
+  if (messageState?.status === STATUS.ABORTED) {
+    return 'aborted'
+  }
+
+  if (!lastMessage) {
+    return finishReason
+  }
+
+  if (lastMessage.tool_calls?.length) {
+    return 'tool_calls'
+  }
+
+  if (lastMessage.content || lastMessage.reasoning_content) {
+    return 'stop'
+  }
+
+  return finishReason
+}
+
 const handleFinishRequest = async (
   finishReason: string,
   messages: ChatMessage[],
@@ -87,12 +115,14 @@ const handleFinishRequest = async (
   messageState: MessageState
 ) => {
   const lastMessage = messages.at(-1)
+  const resolvedFinishReason = normalizeFinishReason(finishReason, lastMessage, messageState)
 
   delete abortControllerMap.main
-  await onRequestEnd(finishReason, lastMessage.content, messages) // 本次请求结束
+  delete abortControllerMap.toolCall
+  await onRequestEnd(resolvedFinishReason, lastMessage?.content ?? '', messages) // 本次请求结束
 
   // 部分模型返回格式不太标准，例如finishReason没有返回tool_calls而是stop，这里做下兼容
-  if (['tool_calls', 'stop'].includes(finishReason) && lastMessage.tool_calls?.length) {
+  if (['tool_calls', 'stop'].includes(resolvedFinishReason) && lastMessage?.tool_calls?.length) {
     lastMessage!.tool_calls.forEach((toolCall) => {
       if (toolCall.type !== 'function') {
         // 修复，兼容部分场景返回格式不标准，流式中多次返回type字段
@@ -102,20 +132,34 @@ const handleFinishRequest = async (
     await handleToolCall(lastMessage.tool_calls, messages, contextMessages) // eslint-disable-line
   }
 
-  if (finishReason === 'aborted' || messageState?.status === STATUS.ABORTED) {
+  if (resolvedFinishReason === 'aborted' || messageState?.status === STATUS.ABORTED) {
     messageState.status = STATUS.ABORTED
-  } else if (finishReason === 'stop' && !lastMessage.tool_calls) {
-    messageState.status = STATUS.FINISHED
     chatStatus.value = CHAT_STATUS.FINISHED
-    await onMessageProcessed(finishReason, lastMessage.content ?? '', messages, {})
+  } else if (resolvedFinishReason === 'stop' && !lastMessage?.tool_calls) {
+    messageState.status = STATUS.FINISHED
   }
+
+  return resolvedFinishReason
 }
 
 const handleRequestError = async (error: Error, messages: ChatMessage[], messageState: MessageState) => {
   chatStatus.value = CHAT_STATUS.FINISHED
   delete abortControllerMap.main
-  await onRequestEnd('error', messages.at(-1).content, messages, { error }) // 本次请求结束
+  delete abortControllerMap.toolCall
+  await onRequestEnd('error', messages.at(-1)?.content ?? '', messages, { error }) // 本次请求结束
   messageState.status = STATUS.ERROR
+}
+
+async function processFinishedMessage(finishReason: string, content: string, messages: ChatMessage[]) {
+  // 主请求和 tool call 后的二段流都走这里，确保 Agent 模式最终会写 renderContent.status。
+  await onMessageProcessed(finishReason, content, messages, {
+    abortControllerMap,
+    messageState: messageManager.messageState
+  })
+  if (GeneratingStatus.includes(messageManager.messageState.status)) {
+    messageManager.messageState.status = STATUS.FINISHED
+  }
+  chatStatus.value = CHAT_STATUS.FINISHED
 }
 
 // 使用 conversation 适配器，将业务逻辑与 conversation 管理解耦
@@ -131,14 +175,7 @@ const {
   onStreamData: handleStreamData,
   onFinishRequest: handleFinishRequest,
   onMessageProcessed: async (finishReason, content, messages) => {
-    await onMessageProcessed(finishReason, content, messages, {
-      abortControllerMap,
-      messageState: messageManager.messageState
-    })
-    if (GeneratingStatus.includes(messageManager.messageState.status)) {
-      messageManager.messageState.status = STATUS.FINISHED
-    }
-    chatStatus.value = CHAT_STATUS.FINISHED
+    await processFinishedMessage(finishReason, content, messages)
   },
   statusManager: {
     isProcessing: () => chatStatus.value === CHAT_STATUS.PROCESSING,
@@ -167,7 +204,14 @@ const handleToolCall = createToolCallHandler({
   streamHandlers: {
     onData: handleStreamData,
     onError: handleRequestError,
-    onDone: handleFinishRequest
+    onDone: async (finishReason, messages, contextMessages, messageState) => {
+      const resolvedFinishReason = await handleFinishRequest(finishReason, messages, contextMessages, messageState)
+      const lastMessage = messages.at(-1)
+      if (resolvedFinishReason === 'stop' && !lastMessage?.tool_calls) {
+        // tool call 续写的流不会再经过 useConversation.onFinish，需要在这里补一次最终消息处理。
+        await processFinishedMessage(resolvedFinishReason, lastMessage?.content ?? '', messages)
+      }
+    }
   },
   getMessageState: () => messageManager.messageState,
   statusManager: {

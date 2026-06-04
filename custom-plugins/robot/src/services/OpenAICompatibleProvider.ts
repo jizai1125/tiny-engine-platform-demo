@@ -5,7 +5,7 @@ import type {
   StreamHandler,
   AIAdapterError
 } from '@opentiny/tiny-robot-kit'
-import { BaseModelProvider, handleSSEStream, ErrorType } from '@opentiny/tiny-robot-kit'
+import { BaseModelProvider, ErrorType } from '@opentiny/tiny-robot-kit'
 import { formatMessages } from '../utils'
 
 interface AxiosRequestConfig {
@@ -44,6 +44,18 @@ export type ProviderConfig = Omit<AIModelConfig, 'provider' | 'providerImplement
   httpClientType?: 'axios' | 'fetch'
   axiosClient?: AxiosInstance | (() => AxiosInstance)
   beforeRequest?: (request: ChatRequestData) => ChatRequestData | Promise<ChatRequestData>
+}
+
+type NormalizedFinishReason = 'stop' | 'tool_calls' | 'aborted' | 'error' | 'unknown'
+
+interface ThinkContentState {
+  inThinking: boolean
+  pendingContent: string
+}
+
+type NormalizedDeltaSegment = {
+  content?: string
+  reasoning_content?: string
 }
 
 export class OpenAICompatibleProvider extends BaseModelProvider {
@@ -291,6 +303,297 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
     return await axiosClient.request(requestOptions)
   }
 
+  // New API 兼容：有些网关 EOF 前不发 [DONE]，或者 finish_reason 固定是 unknown。
+  // 这里基于本轮已经收到的内容，给上层输出统一的结束语义。
+  private normalizeStreamFinishReason(
+    finishReason: string | undefined,
+    streamState: { hasContent: boolean; hasReasoningContent: boolean; hasToolCalls: boolean },
+    signal?: AbortSignal
+  ): NormalizedFinishReason | string {
+    if (signal?.aborted || finishReason === 'aborted') {
+      return 'aborted'
+    }
+
+    if (finishReason === 'error') {
+      return 'error'
+    }
+
+    if (finishReason && finishReason !== 'unknown') {
+      return finishReason
+    }
+
+    if (streamState.hasToolCalls) {
+      return 'tool_calls'
+    }
+
+    if (streamState.hasContent || streamState.hasReasoningContent) {
+      return 'stop'
+    }
+
+    return 'unknown'
+  }
+
+  // 避免流式 chunk 正好把 <think> / </think> 标签切断时，把半截标签当正文吐出去。
+  private getSafeTextEnd(content: string, startIndex: number, tags: string[]) {
+    const remaining = content.slice(startIndex).toLowerCase()
+    let keepLength = 0
+
+    tags.forEach((tag) => {
+      for (let length = 1; length < tag.length && length <= remaining.length; length++) {
+        if (tag.startsWith(remaining.slice(-length))) {
+          keepLength = Math.max(keepLength, length)
+        }
+      }
+    })
+
+    return content.length - keepLength
+  }
+
+  // 部分 OpenAI-compatible 网关/模型会把思考过程包在普通 content 的 <think>...</think> 中。
+  // 在 provider 层拆成 reasoning_content，复用现有深度思考 UI，并避免标签污染 JSON Patch。
+  private parseThinkContent(content: string, thinkState: ThinkContentState): NormalizedDeltaSegment[] {
+    const openTag = '<think>'
+    const closeTag = '</think>'
+    const segments: NormalizedDeltaSegment[] = []
+    const source = thinkState.pendingContent + content
+    const lowerSource = source.toLowerCase()
+    let cursor = 0
+
+    while (cursor < source.length) {
+      if (thinkState.inThinking) {
+        const closeIndex = lowerSource.indexOf(closeTag, cursor)
+        if (closeIndex === -1) {
+          const safeEnd = this.getSafeTextEnd(source, cursor, [closeTag])
+          if (safeEnd > cursor) {
+            segments.push({ reasoning_content: source.slice(cursor, safeEnd) })
+          }
+          thinkState.pendingContent = source.slice(safeEnd)
+          return segments
+        }
+
+        if (closeIndex > cursor) {
+          segments.push({ reasoning_content: source.slice(cursor, closeIndex) })
+        }
+        cursor = closeIndex + closeTag.length
+        thinkState.inThinking = false
+      } else {
+        const openIndex = lowerSource.indexOf(openTag, cursor)
+        if (openIndex === -1) {
+          const safeEnd = this.getSafeTextEnd(source, cursor, [openTag])
+          if (safeEnd > cursor) {
+            segments.push({ content: source.slice(cursor, safeEnd) })
+          }
+          thinkState.pendingContent = source.slice(safeEnd)
+          return segments
+        }
+
+        if (openIndex > cursor) {
+          segments.push({ content: source.slice(cursor, openIndex) })
+        }
+        cursor = openIndex + openTag.length
+        thinkState.inThinking = true
+      }
+    }
+
+    thinkState.pendingContent = ''
+    return segments
+  }
+
+  private flushThinkContent(thinkState: ThinkContentState): NormalizedDeltaSegment[] {
+    if (!thinkState.pendingContent) {
+      return []
+    }
+
+    const content = thinkState.pendingContent
+    thinkState.pendingContent = ''
+    return thinkState.inThinking ? [{ reasoning_content: content }] : [{ content }]
+  }
+
+  // 保留原始 chunk 的 id/model/finish_reason 等元信息，只替换第一个 choice 的 delta 内容。
+  private createStreamDataWithDelta(data: any, deltaSegment: NormalizedDeltaSegment) {
+    const choices = data.choices?.map((choice: any, index: number) => {
+      if (index !== 0) {
+        return choice
+      }
+
+      const delta = { ...choice.delta }
+      delete delta.content
+      delete delta.reasoning_content
+
+      if (deltaSegment.content !== undefined) {
+        delta.content = deltaSegment.content
+      }
+      if (deltaSegment.reasoning_content !== undefined) {
+        delta.reasoning_content = deltaSegment.reasoning_content
+      }
+
+      return { ...choice, delta }
+    })
+
+    return { ...data, choices }
+  }
+
+  // 统一 provider 输出：补齐结束语义，并把非标准 <think> 内容转换为标准 reasoning_content。
+  private createNormalizedStreamHandler(handler: StreamHandler, signal?: AbortSignal): StreamHandler {
+    const streamState = {
+      hasContent: false,
+      hasReasoningContent: false,
+      hasToolCalls: false
+    }
+    const thinkState: ThinkContentState = {
+      inThinking: false,
+      pendingContent: ''
+    }
+
+    const emitData = (data: any, deltaSegment?: NormalizedDeltaSegment) => {
+      const nextData = deltaSegment ? this.createStreamDataWithDelta(data, deltaSegment) : data
+      const choice = nextData?.choices?.[0]
+      const delta = choice?.delta
+
+      if (typeof delta?.content === 'string' && delta.content) {
+        streamState.hasContent = true
+      }
+
+      if (typeof delta?.reasoning_content === 'string' && delta.reasoning_content) {
+        streamState.hasReasoningContent = true
+      }
+
+      if (Array.isArray(delta?.tool_calls) && delta.tool_calls.length) {
+        streamState.hasToolCalls = true
+      }
+
+      if (choice?.finish_reason === 'tool_calls') {
+        streamState.hasToolCalls = true
+      }
+
+      handler.onData(nextData)
+    }
+
+    return {
+      onData: (data) => {
+        const choice = data?.choices?.[0]
+        const delta = choice?.delta
+
+        if (typeof delta?.content === 'string') {
+          const segments = this.parseThinkContent(delta?.content ?? '', thinkState)
+          segments.forEach((segment) => emitData(data, segment))
+          if (!segments.length && (delta?.tool_calls?.length || choice?.finish_reason)) {
+            emitData(this.createStreamDataWithDelta(data, {}))
+          }
+          return
+        }
+
+        emitData(data)
+      },
+      onError: (error) => handler.onError(error),
+      onDone: (finishReason) => {
+        this.flushThinkContent(thinkState).forEach((segment) => {
+          emitData({ choices: [{ delta: {} }] }, segment)
+        })
+        handler.onDone(this.normalizeStreamFinishReason(finishReason, streamState, signal))
+      }
+    }
+  }
+
+  // 本地 SSE 解析器：兼容标准 [DONE]、finish_reason 后直接 EOF、以及 CRLF 分隔。
+  private async handleSSEStream(response: Response, handler: StreamHandler, signal?: AbortSignal): Promise<void> {
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('Response body is null')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let latestFinishReason: string | undefined
+    let doneHandled = false
+
+    const emitDone = (finishReason?: string) => {
+      if (doneHandled) {
+        return
+      }
+      doneHandled = true
+      handler.onDone(finishReason)
+    }
+
+    const processEvent = (event: string) => {
+      const trimmedEvent = event.trim()
+      if (!trimmedEvent) {
+        return
+      }
+
+      const dataLines = trimmedEvent
+        .split(/\r?\n/)
+        .filter((line) => line.trimStart().startsWith('data:'))
+        .map((line) => line.replace(/^\s*data:\s?/, ''))
+
+      if (!dataLines.length) {
+        return
+      }
+
+      const dataText = dataLines.join('\n').trim()
+
+      if (dataText === '[DONE]') {
+        emitDone(latestFinishReason)
+        return
+      }
+
+      try {
+        const data = JSON.parse(dataText)
+        handler.onData(data)
+        latestFinishReason = data.choices?.[0]?.finish_reason || latestFinishReason
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error parsing SSE message:', error, event)
+      }
+    }
+
+    signal?.addEventListener(
+      'abort',
+      () => {
+        reader.cancel().catch((error) => console.error('Error cancelling reader:', error))
+      },
+      { once: true }
+    )
+
+    try {
+      while (true) {
+        if (signal?.aborted) {
+          await reader.cancel()
+          emitDone('aborted')
+          break
+        }
+
+        const { done, value } = await reader.read()
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+        const events = buffer.split(/\r?\n\r?\n/)
+        buffer = events.pop() || ''
+        events.forEach(processEvent)
+      }
+
+      const remaining = `${buffer}${decoder.decode()}`
+      if (remaining.trim()) {
+        processEvent(remaining)
+      }
+
+      if (signal?.aborted) {
+        emitDone('aborted')
+      } else {
+        // 如果服务端没有发 [DONE]，正常 EOF 也要把最后记录到的 finish_reason 传给上层。
+        emitDone(latestFinishReason)
+      }
+    } catch (error) {
+      if (signal?.aborted) {
+        emitDone('aborted')
+        return
+      }
+      throw error
+    }
+  }
+
   /**
    * 发送聊天请求并获取响应
    * @param request 聊天请求参数
@@ -334,6 +637,7 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
     handler: StreamHandler
   ): Promise<void> {
     const { signal, apiUrl } = request.options || {}
+    const streamHandler = this.createNormalizedStreamHandler(handler, signal)
 
     try {
       // 准备请求数据
@@ -346,11 +650,11 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
         const fetchResponse = (
           (response as { data: { response: Response } }).data || (response as { response: Response })
         ).response
-        await handleSSEStream(fetchResponse, handler, signal)
+        await this.handleSSEStream(fetchResponse, streamHandler, signal)
       } else {
         // 使用 fetch 发送流式请求
         const response = await this.sendFetchRequest(requestData, headers, { signal, apiUrl })
-        await handleSSEStream(response, handler, signal)
+        await this.handleSSEStream(response, streamHandler, signal)
       }
     } catch (error: unknown) {
       // 如果是用户主动取消，不报错
