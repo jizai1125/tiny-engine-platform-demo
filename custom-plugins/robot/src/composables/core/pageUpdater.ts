@@ -28,10 +28,13 @@ type UpdateResult =
   | { isError: false; schema: object; error?: undefined }
   | { isError: true; schema?: undefined; error: unknown }
 
+type BeforeApply = () => boolean
+
 const _updatePageSchema = (
   streamContent: string,
   currentPageSchema: object,
-  isFinal: boolean = false
+  isFinal: boolean = false,
+  beforeApply?: BeforeApply
 ): UpdateResult => {
   const { getSelectedModelInfo } = useModelConfig()
   if (getSelectedModelInfo().config?.chatMode !== ChatMode.Agent) {
@@ -88,6 +91,10 @@ const _updatePageSchema = (
   schemaAutoFix(newSchema.children)
 
   // 更新Schema
+  // 流式调用方可在 setSchema 前做写入检查，阻止过期任务写画布；最终更新不需要这层检查。
+  if (beforeApply && !beforeApply()) {
+    return { isError: true, error: 'skip stale stream schema update.' }
+  }
   setSchema(newSchema)
   if (isFinal) {
     useHistory().addHistory()
@@ -101,11 +108,12 @@ const updatePageSchemaThrottled = useThrottleFn(_updatePageSchema, 200, true)
 export const updatePageSchema = (
   streamContent: string,
   currentPageSchema: object,
-  isFinal: boolean = false
+  isFinal: boolean = false,
+  beforeApply?: BeforeApply
 ): UpdateResult | Promise<UpdateResult> => {
   if (isFinal) {
     return _updatePageSchema(streamContent, currentPageSchema, true)
   }
 
-  return updatePageSchemaThrottled(streamContent, currentPageSchema, false)
+  return updatePageSchemaThrottled(streamContent, currentPageSchema, false, beforeApply)
 }

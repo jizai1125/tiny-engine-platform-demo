@@ -118,14 +118,16 @@ const ensureAgentResultRenderContent = (message: any, contentType: string, statu
  */
 export default function useAgentMode(): ModeHooks {
   let pageSchema: object | null = null
-  // 这两个状态只属于当前请求轮次，避免后一轮生成复用上一轮已经渲染过的 schema。
+  // 这些状态只属于当前请求轮次，避免跨轮复用旧 schema 或让过期流式任务继续写画布。
   let streamRunId = 0
   let lastStreamSuccessResult: { schema: object } | null = null
+  let isFinishingStream = false
   const { getSelectedModelInfo } = useModelConfig()
 
   const resetPageGenerateState = () => {
     pageSchema = null
     lastStreamSuccessResult = null
+    isFinishingStream = false
   }
 
   const markStreamSchemaSuccess = (result: any, currentRunId: number) => {
@@ -177,6 +179,7 @@ export default function useAgentMode(): ModeHooks {
   const onMessageSent = () => {
     streamRunId++
     lastStreamSuccessResult = null
+    isFinishingStream = false
     pageSchema = deepClone(useCanvas().pageState.pageSchema)
   }
 
@@ -233,7 +236,9 @@ export default function useAgentMode(): ModeHooks {
     }
 
     const currentRunId = streamRunId
-    Promise.resolve(updatePageSchema(content, pageSchema!))
+    // 节流函数可能在最终收尾后才执行，写画布前必须再次确认仍是当前这轮流式更新。
+    const beforeApply = () => currentRunId === streamRunId && Boolean(pageSchema) && !isFinishingStream
+    Promise.resolve(updatePageSchema(content, pageSchema!, false, beforeApply))
       .then((result) => {
         markStreamSchemaSuccess(result, currentRunId)
       })
@@ -287,6 +292,7 @@ export default function useAgentMode(): ModeHooks {
     }: { abortControllerMap: Record<string, AbortController>; messageState: MessageState }
   ) => {
     const lastMessage = messages.at(-1)
+    isFinishingStream = true
 
     if (finishReason === 'aborted' || finishReason === 'error') {
       ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
