@@ -118,7 +118,36 @@ const ensureAgentResultRenderContent = (message: any, contentType: string, statu
  */
 export default function useAgentMode(): ModeHooks {
   let pageSchema: object | null = null
+  // 这两个状态只属于当前请求轮次，避免后一轮生成复用上一轮已经渲染过的 schema。
+  let streamRunId = 0
+  let lastStreamSuccessResult: { schema: object } | null = null
   const { getSelectedModelInfo } = useModelConfig()
+
+  const resetPageGenerateState = () => {
+    pageSchema = null
+    lastStreamSuccessResult = null
+  }
+
+  const markStreamSchemaSuccess = (result: any, currentRunId: number) => {
+    if (currentRunId !== streamRunId || !pageSchema || !result?.schema || result.isError) {
+      return
+    }
+
+    // 流式阶段已成功渲染过页面时，最终修复失败也不能把气泡误判成 failed。
+    lastStreamSuccessResult = { schema: result.schema }
+  }
+
+  const finishWithStreamSchemaFallback = (message: any, messageState: MessageState) => {
+    if (!lastStreamSuccessResult?.schema) {
+      return false
+    }
+
+    const lastRenderContent = ensureAgentResultRenderContent(message, getContentType(), 'success')
+    lastRenderContent.schema = lastStreamSuccessResult.schema
+    messageState.status = STATUS.FINISHED
+    messageState.errorMsg = ''
+    return true
+  }
 
   // ========== 配置方法 ==========
   const getApiUrl = () => 'app-center/api/ai/chat'
@@ -146,6 +175,8 @@ export default function useAgentMode(): ModeHooks {
   }
 
   const onMessageSent = () => {
+    streamRunId++
+    lastStreamSuccessResult = null
     pageSchema = deepClone(useCanvas().pageState.pageSchema)
   }
 
@@ -197,7 +228,18 @@ export default function useAgentMode(): ModeHooks {
   }
 
   const onStreamData = (data: object, content: string | object, _messages: any[]) => {
-    updatePageSchema(content, pageSchema!)
+    if (!pageSchema) {
+      return
+    }
+
+    const currentRunId = streamRunId
+    Promise.resolve(updatePageSchema(content, pageSchema!))
+      .then((result) => {
+        markStreamSchemaSuccess(result, currentRunId)
+      })
+      .catch((error) => {
+        logger.error('stream update page schema failed', error)
+      })
   }
 
   const onRequestEnd = async (
@@ -248,13 +290,17 @@ export default function useAgentMode(): ModeHooks {
 
     if (finishReason === 'aborted' || finishReason === 'error') {
       ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
-      pageSchema = null
+      resetPageGenerateState()
       return
     }
 
     if (!content?.trim() && !lastMessage?.content?.trim()) {
+      if (finishWithStreamSchemaFallback(lastMessage, messageState)) {
+        resetPageGenerateState()
+        return
+      }
       ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
-      pageSchema = null
+      resetPageGenerateState()
       return
     }
 
@@ -287,11 +333,16 @@ export default function useAgentMode(): ModeHooks {
         const fixedJsonValidResult = isValidJsonPatchObjectString(fixedContent)
         if (fixedJsonValidResult.isError) {
           // 修复接口也可能返回 <think> 或解释文本；仍非法时直接失败，避免继续把原文传给 updatePageSchema。
+          if (finishWithStreamSchemaFallback(lastMessage, messageState)) {
+            delete abortControllerMap.errorFix
+            resetPageGenerateState()
+            return
+          }
           ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
           messageState.status = STATUS.ERROR
           messageState.errorMsg = `JSON 修复失败：${fixedJsonValidResult.error}`
           delete abortControllerMap.errorFix
-          pageSchema = null
+          resetPageGenerateState()
           return
         }
 
@@ -300,15 +351,18 @@ export default function useAgentMode(): ModeHooks {
         lastMessage.content = getJsonObjectString(fixedContent)
       } catch (error) {
         logger.error('json fix failed', error)
-        ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
         if (error instanceof Error && error.message.includes('canceled')) {
+          ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
           messageState.status = STATUS.ABORTED
         } else {
-          messageState.status = STATUS.ERROR
-          messageState.errorMsg = `JSON 修复失败：${error}`
+          if (!finishWithStreamSchemaFallback(lastMessage, messageState)) {
+            ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+            messageState.status = STATUS.ERROR
+            messageState.errorMsg = `JSON 修复失败：${error}`
+          }
         }
         delete abortControllerMap.errorFix
-        pageSchema = null
+        resetPageGenerateState()
         return
       }
       delete abortControllerMap.errorFix
@@ -323,19 +377,23 @@ export default function useAgentMode(): ModeHooks {
       const lastRenderContent = ensureAgentResultRenderContent(
         lastMessage,
         getContentType(),
-        result.schema ? 'success' : 'failed'
+        result?.schema || lastStreamSuccessResult?.schema ? 'success' : 'failed'
       )
-      if (result.schema) {
+      if (result?.schema) {
         lastRenderContent.schema = result.schema
+      } else if (lastStreamSuccessResult?.schema) {
+        lastRenderContent.schema = lastStreamSuccessResult.schema
       }
     } catch (error) {
       logger.error('update page schema failed', error)
-      ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
-      messageState.status = STATUS.ERROR
-      messageState.errorMsg = `页面更新失败：${error}`
+      if (!finishWithStreamSchemaFallback(lastMessage, messageState)) {
+        ensureAgentResultRenderContent(lastMessage, getContentType(), 'failed')
+        messageState.status = STATUS.ERROR
+        messageState.errorMsg = `页面更新失败：${error}`
+      }
     }
 
-    pageSchema = null
+    resetPageGenerateState()
   }
 
   const onPostCallTools = (toolsResult: Record<string, unknown>[], { currentMessage }: { currentMessage: any }) => {
@@ -344,6 +402,7 @@ export default function useAgentMode(): ModeHooks {
 
   const onConversationEnd = (_conversationId: string) => {
     // Agent 模式暂无特殊处理
+    resetPageGenerateState()
   }
 
   return {

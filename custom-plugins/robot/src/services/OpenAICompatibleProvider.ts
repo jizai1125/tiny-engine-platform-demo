@@ -515,10 +515,11 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
       handler.onDone(finishReason)
     }
 
+    // 返回 false 表示本轮 SSE 已进入终态，外层读取循环需要停止，避免 EOF 再补一次 stop。
     const processEvent = (event: string) => {
       const trimmedEvent = event.trim()
       if (!trimmedEvent) {
-        return
+        return true
       }
 
       const dataLines = trimmedEvent
@@ -527,23 +528,28 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
         .map((line) => line.replace(/^\s*data:\s?/, ''))
 
       if (!dataLines.length) {
-        return
+        return true
       }
 
       const dataText = dataLines.join('\n').trim()
 
       if (dataText === '[DONE]') {
         emitDone(latestFinishReason)
-        return
+        return false
       }
 
       try {
         const data = JSON.parse(dataText)
         handler.onData(data)
         latestFinishReason = data.choices?.[0]?.finish_reason || latestFinishReason
+        return true
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error parsing SSE message:', error, event)
+        // SSE data 帧已经损坏时要进入 error 终态，避免 EOF 再被归一成 stop。
+        handler.onError(error)
+        emitDone('error')
+        return false
       }
     }
 
@@ -556,7 +562,8 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
     )
 
     try {
-      while (true) {
+      let shouldContinue = true
+      while (shouldContinue) {
         if (signal?.aborted) {
           await reader.cancel()
           emitDone('aborted')
@@ -571,11 +578,16 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
         buffer += decoder.decode(value, { stream: true })
         const events = buffer.split(/\r?\n\r?\n/)
         buffer = events.pop() || ''
-        events.forEach(processEvent)
+        for (const event of events) {
+          if (!processEvent(event)) {
+            shouldContinue = false
+            break
+          }
+        }
       }
 
       const remaining = `${buffer}${decoder.decode()}`
-      if (remaining.trim()) {
+      if (shouldContinue && remaining.trim()) {
         processEvent(remaining)
       }
 
