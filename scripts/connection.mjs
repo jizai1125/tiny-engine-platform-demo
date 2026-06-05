@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
@@ -36,9 +37,23 @@ const componentUpdateFields = [
 ]
 const jsonCompareFields = ['name', 'npm', 'snippets', 'schema', 'configure', 'component_metadata']
 
-dotenv.config({ path: path.join(rootDir, '.env'), quiet: true })
-dotenv.config({ path: path.join(rootDir, '.env.local'), override: true, quiet: true })
-dotenv.config({ path: path.join(rootDir, 'designer', 'env', '.env.development'), quiet: true })
+const loadEnvFile = (filePath) => {
+  try {
+    return dotenv.parse(fs.readFileSync(filePath))
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return {}
+    }
+
+    throw error
+  }
+}
+
+const loadDatabaseEnv = () => ({
+  ...loadEnvFile(path.join(rootDir, '.env')),
+  ...loadEnvFile(path.join(rootDir, '.env.local')),
+  ...process.env
+})
 
 const stableStringify = (value) => {
   if (Array.isArray(value)) {
@@ -57,7 +72,7 @@ const stableStringify = (value) => {
 
 class MysqlConnection {
   constructor(config) {
-    const { SQL_HOST, SQL_PORT, SQL_USER, SQL_PASSWORD, SQL_DATABASE } = process.env
+    const { SQL_HOST, SQL_PORT, SQL_USER, SQL_PASSWORD, SQL_DATABASE } = loadDatabaseEnv()
 
     this.config = config || {
       host: SQL_HOST,
