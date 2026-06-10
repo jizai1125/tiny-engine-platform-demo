@@ -268,8 +268,18 @@ const handleFileSelected = async (formData: FormData, updateAttachment: (resourc
 }
 
 onMounted(async () => {
-  await initConfig()
-  initChatClient()
+  try {
+    await initConfig()
+    initChatClient()
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('AI config init failed', error)
+    useNotify({
+      type: 'error',
+      title: 'AI 配置加载失败',
+      message: '请检查后端服务或登录状态后重新打开 AI 助手。'
+    })
+  }
 })
 </script>
 

@@ -19,7 +19,7 @@ import {
   removeLoading,
   addSystemPrompt
 } from '../../utils'
-import { updatePageSchema } from '../core/pageUpdater'
+import { applyPageSchema, resolvePageSchema, updatePageSchema } from '../core/pageUpdater'
 import useModelConfig from '../core/useConfig'
 import { formatComponents, getAgentSystemPrompt, getJsonFixPrompt } from '../../constants/prompts'
 import { search, fetchAssets } from '../../services/agentServices'
@@ -107,6 +107,38 @@ const ensureAgentResultRenderContent = (message: any, contentType: string, statu
   return resultRenderContent
 }
 
+const getRootChildren = (schema?: object | null) => {
+  return (schema as { children?: unknown } | null | undefined)?.children
+}
+
+const getJsonPatchList = (content: string) => {
+  try {
+    const patches = JSON.parse(getJsonObjectString(content))
+    return Array.isArray(patches) ? patches : [patches]
+  } catch {
+    return []
+  }
+}
+
+const hasRootChildrenPatch = (patchList: any[]) => {
+  return patchList.some((patch: any) => patch?.path === '/children')
+}
+
+const hasChildrenPatch = (patchList: any[]) => {
+  return patchList.some((patch: any) => {
+    const path = patch?.path
+    return typeof path === 'string' && (path === '/children' || path.startsWith('/children/'))
+  })
+}
+
+const hasRootChildrenChanged = (originSchema?: object | null, nextSchema?: object | null) => {
+  return JSON.stringify(getRootChildren(originSchema) ?? null) !== JSON.stringify(getRootChildren(nextSchema) ?? null)
+}
+
+const isSameRootChildren = (schemaA?: object | null, schemaB?: object | null) => {
+  return JSON.stringify(getRootChildren(schemaA) ?? null) === JSON.stringify(getRootChildren(schemaB) ?? null)
+}
+
 /**
  * Agent 模式实现
  * 特点：
@@ -130,25 +162,45 @@ export default function useAgentMode(): ModeHooks {
     isFinishingStream = false
   }
 
-  const markStreamSchemaSuccess = (result: any, currentRunId: number) => {
-    if (currentRunId !== streamRunId || !pageSchema || !result?.schema || result.isError) {
-      return
-    }
-
-    // 流式阶段已成功渲染过页面时，最终修复失败也不能把气泡误判成 failed。
-    lastStreamSuccessResult = { schema: result.schema }
-  }
-
   const finishWithStreamSchemaFallback = (message: any, messageState: MessageState) => {
     if (!lastStreamSuccessResult?.schema) {
       return false
     }
 
+    // 兜底成功时也要写回画布，避免气泡显示成功但画布停留在错误的最终写入结果。
+    applyPageSchema(lastStreamSuccessResult.schema, true)
     const lastRenderContent = ensureAgentResultRenderContent(message, getContentType(), 'success')
     lastRenderContent.schema = lastStreamSuccessResult.schema
     messageState.status = STATUS.FINISHED
     messageState.errorMsg = ''
     return true
+  }
+
+  const resolveFinalPageSchema = (finalContent: string) => {
+    if (!pageSchema) {
+      return
+    }
+
+    const finalFromOrigin = resolvePageSchema(finalContent, pageSchema!, true)
+    if (!lastStreamSuccessResult?.schema || !hasRootChildrenChanged(pageSchema, lastStreamSuccessResult.schema)) {
+      return finalFromOrigin
+    }
+
+    const finalPatchList = getJsonPatchList(finalContent)
+    if (!finalPatchList.length || hasRootChildrenPatch(finalPatchList)) {
+      // 根 children patch 代表最终结果已明确给出完整组件树，继续信任从本轮初始页面计算出的结果。
+      return finalFromOrigin
+    }
+
+    if (!hasChildrenPatch(finalPatchList)) {
+      // 最终 patch 只改样式、方法、状态等非组件树字段时，基于用户已看到的页面继续应用最终 patch。
+      return resolvePageSchema(finalContent, lastStreamSuccessResult.schema, true)
+    }
+
+    // 局部 children patch 可能只是流式尾部片段；从初始页面重算会丢前序片段时，优先保留流式结果。
+    return isSameRootChildren(finalFromOrigin?.schema, lastStreamSuccessResult.schema)
+      ? finalFromOrigin
+      : { schema: lastStreamSuccessResult.schema, isError: false as const }
   }
 
   // ========== 配置方法 ==========
@@ -237,11 +289,15 @@ export default function useAgentMode(): ModeHooks {
 
     const currentRunId = streamRunId
     // 节流函数可能在最终收尾后才执行，写画布前必须再次确认仍是当前这轮流式更新。
-    const beforeApply = () => currentRunId === streamRunId && Boolean(pageSchema) && !isFinishingStream
+    const beforeApply = (newSchema: object) => {
+      const canApply = currentRunId === streamRunId && Boolean(pageSchema) && !isFinishingStream
+      if (canApply) {
+        // 在真正写入画布前记录本轮成功结果，避免节流返回值丢失导致最终气泡误判失败。
+        lastStreamSuccessResult = { schema: newSchema }
+      }
+      return canApply
+    }
     Promise.resolve(updatePageSchema(content, pageSchema!, false, beforeApply))
-      .then((result) => {
-        markStreamSchemaSuccess(result, currentRunId)
-      })
       .catch((error) => {
         logger.error('stream update page schema failed', error)
       })
@@ -379,7 +435,14 @@ export default function useAgentMode(): ModeHooks {
 
     // 更新页面 schema
     try {
-      const result = await updatePageSchema(lastMessage.content, pageSchema, true)
+      const result = resolveFinalPageSchema(lastMessage.content)
+      if (!result?.schema && finishWithStreamSchemaFallback(lastMessage, messageState)) {
+        resetPageGenerateState()
+        return
+      }
+      if (result?.schema) {
+        applyPageSchema(result.schema, true)
+      }
       const lastRenderContent = ensureAgentResultRenderContent(
         lastMessage,
         getContentType(),

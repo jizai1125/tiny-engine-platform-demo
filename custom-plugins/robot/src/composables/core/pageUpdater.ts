@@ -17,10 +17,14 @@ const { deepClone } = utils
 
 const logger = console
 
-const setSchema = (schema: object) => {
+// 统一提交页面 schema，普通最终更新和流式成功兜底都需要保持画布与历史记录一致。
+export const applyPageSchema = (schema: object, shouldAddHistory = false) => {
   const { importSchema, setSaved } = useCanvas()
   importSchema(schema)
   setSaved(false)
+  if (shouldAddHistory) {
+    useHistory().addHistory()
+  }
 }
 
 type UpdateResult =
@@ -28,20 +32,19 @@ type UpdateResult =
   | { isError: false; schema: object; error?: undefined }
   | { isError: true; schema?: undefined; error: unknown }
 
-type BeforeApply = () => boolean
+type BeforeApply = (schema: object) => boolean
 
-const _updatePageSchema = (
+export const resolvePageSchema = (
   streamContent: string,
   currentPageSchema: object,
-  isFinal: boolean = false,
-  beforeApply?: BeforeApply
+  isFinal: boolean = false
 ): UpdateResult => {
   const { getSelectedModelInfo } = useModelConfig()
   if (getSelectedModelInfo().config?.chatMode !== ChatMode.Agent) {
     return
   }
 
-  // 解析流式返回的schema patch
+  // 只计算 patch 应用后的 schema，不写画布；最终收尾会先用它比较结果再决定提交哪个 schema。
   let content = isFinal ? getJsonObjectString(streamContent) : streamContent
   let jsonPatches = []
   try {
@@ -66,7 +69,7 @@ const _updatePageSchema = (
     return { isError: true, error: 'format error: no valid json patch.' }
   }
 
-  // 生成新schema
+  // 始终基于调用方传入的 schema 生成新 schema，调用方负责决定这个基底是初始页面还是流式成功页面。
   const originSchema = deepClone(currentPageSchema)
   let appliedPatchCount = 0
   const newSchema = validJsonPatches.reduce((acc: object, patch: any) => {
@@ -90,17 +93,29 @@ const _updatePageSchema = (
   fixMethods(newSchema.methods)
   schemaAutoFix(newSchema.children)
 
-  // 更新Schema
-  // 流式调用方可在 setSchema 前做写入检查，阻止过期任务写画布；最终更新不需要这层检查。
-  if (beforeApply && !beforeApply()) {
-    return { isError: true, error: 'skip stale stream schema update.' }
-  }
-  setSchema(newSchema)
-  if (isFinal) {
-    useHistory().addHistory()
+  return { schema: newSchema, isError: false }
+}
+
+const _updatePageSchema = (
+  streamContent: string,
+  currentPageSchema: object,
+  isFinal: boolean = false,
+  beforeApply?: BeforeApply
+): UpdateResult => {
+  const result = resolvePageSchema(streamContent, currentPageSchema, isFinal)
+  if (!result?.schema || result.isError) {
+    return result
   }
 
-  return { schema: newSchema, isError: false }
+  // 更新Schema
+  // 调用方可在写入画布前检查待写入 schema，阻止过期流式任务或不完整最终结果覆盖当前页面。
+  const allowApply = !beforeApply || beforeApply(result.schema)
+  if (!allowApply) {
+    return { isError: true, error: 'skip page schema update.' }
+  }
+  applyPageSchema(result.schema, isFinal)
+
+  return result
 }
 
 const updatePageSchemaThrottled = useThrottleFn(_updatePageSchema, 200, true)
@@ -112,7 +127,7 @@ export const updatePageSchema = (
   beforeApply?: BeforeApply
 ): UpdateResult | Promise<UpdateResult> => {
   if (isFinal) {
-    return _updatePageSchema(streamContent, currentPageSchema, true)
+    return _updatePageSchema(streamContent, currentPageSchema, true, beforeApply)
   }
 
   return updatePageSchemaThrottled(streamContent, currentPageSchema, false, beforeApply)

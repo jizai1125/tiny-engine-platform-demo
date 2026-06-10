@@ -187,6 +187,9 @@ const initConfig = async (force = false) => {
 
   try {
     await initPromise
+  } catch (error) {
+    initPromise = null
+    throw error
   } finally {
     if (force) {
       initPromise = null
