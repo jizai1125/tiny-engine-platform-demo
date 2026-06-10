@@ -9,3 +9,4 @@ allowBuilds:
 patchedDependencies:
   '@opentiny/tiny-engine-canvas': patches/@opentiny__tiny-engine-canvas.patch
   '@opentiny/tiny-engine-common': patches/@opentiny__tiny-engine-common.patch
+  '@opentiny/tiny-engine-plugin-materials@2.10.0': patches/@opentiny__tiny-engine-plugin-materials@2.10.0.patch

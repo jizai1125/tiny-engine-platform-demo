@@ -1,0 +1,103 @@
+{
+  "icon": "Collection",
+  "name": {
+    "zh_CN": "数据源容器"
+  },
+  "component": "Collection",
+  "schema": {
+    "slots": {},
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "collapse": {
+          "number": 6,
+          "text": {
+            "zh_CN": "显示更多"
+          }
+        },
+        "content": [
+          {
+            "property": "condition",
+            "type": "boolean",
+            "defaultValue": true,
+            "label": {
+              "text": {
+                "zh_CN": "是否渲染"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "SwitchConfigurator",
+              "props": {}
+            }
+          },
+          {
+            "property": "style",
+            "type": "string",
+            "defaultValue": "",
+            "label": {
+              "text": {
+                "zh_CN": "样式"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "CodeConfigurator",
+              "props": {}
+            }
+          },
+          {
+            "property": "dataSource",
+            "type": "string",
+            "defaultValue": "",
+            "bindState": false,
+            "label": {
+              "text": {
+                "zh_CN": "数据源"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "CollectionConfigurator",
+              "props": {}
+            }
+          }
+        ]
+      }
+    ],
+    "events": {},
+    "shortcuts": {
+      "properties": []
+    },
+    "contentMenu": {
+      "actions": []
+    }
+  },
+  "configure": {
+    "isContainer": true
+  },
+  "category": "advanced",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "数据源容器"
+      },
+      "screenshot": "",
+      "snippetName": "Collection",
+      "icon": "Collection",
+      "schema": {
+        "componentName": "Collection",
+        "props": {}
+      },
+      "category": "advanced"
+    }
+  ]
+}

@@ -8,7 +8,7 @@
     "build:materials": "node ./scripts/buildMaterials.mjs",
     "split:materials": "node ./scripts/splitMaterials.mjs",
     "syncMaterialsDb": "node ./scripts/syncMaterialsDb.mjs",
-    "build:plugins": "pnpm --filter @demo/tiny-engine-plugin-page build && pnpm --filter @demo/tiny-engine-plugin-robot build"
+    "build:plugins": "pnpm --filter @demo/tiny-engine-plugin-page build && pnpm --filter @demo/tiny-engine-plugin-robot build && pnpm --filter @demo/tiny-engine-plugin-tree build"
   },
   "devDependencies": {
     "dotenv": "^17.4.2",

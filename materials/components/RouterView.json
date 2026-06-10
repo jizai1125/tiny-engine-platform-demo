@@ -1,0 +1,36 @@
+{
+  "icon": "RouterView",
+  "name": {
+    "zh_CN": "路由视图"
+  },
+  "component": "RouterView",
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "content": []
+      }
+    ]
+  },
+  "category": "advanced",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "路由视图"
+      },
+      "screenshot": "",
+      "snippetName": "RouterView",
+      "icon": "RouterView",
+      "schema": {
+        "componentName": "RouterView",
+        "props": {}
+      },
+      "category": "advanced"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "icon": "Image",
+  "name": {
+    "zh_CN": "图片"
+  },
+  "component": "Img",
+  "container": false,
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "collapse": {
+          "number": 6,
+          "text": {
+            "zh_CN": "显示更多"
+          }
+        },
+        "content": [
+          {
+            "property": "src",
+            "type": "string",
+            "defaultValue": "",
+            "bindState": true,
+            "label": {
+              "text": {
+                "zh_CN": "资源选择"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "SourceSelectConfigurator",
+              "props": {}
+            },
+            "labelPosition": "top"
+          }
+        ]
+      }
+    ],
+    "events": {
+      "onClick": {
+        "label": {
+          "zh_CN": "点击事件"
+        },
+        "description": {
+          "zh_CN": "点击时触发的回调函数"
+        },
+        "type": "event",
+        "functionInfo": {
+          "params": [],
+          "returns": {}
+        },
+        "defaultValue": ""
+      }
+    },
+    "shortcuts": {
+      "properties": [
+        "src"
+      ]
+    },
+    "contentMenu": {
+      "actions": []
+    }
+  },
+  "configure": {
+    "loop": true
+  },
+  "category": "basic",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "图片"
+      },
+      "screenshot": "",
+      "snippetName": "Img",
+      "icon": "Image",
+      "schema": {
+        "componentName": "Img",
+        "props": {
+          "src": "https://tinyengine-assets.obs.cn-north-4.myhuaweicloud.com/files/designer-default-icon.jpg"
+        }
+      },
+      "category": "basic"
+    }
+  ]
+}

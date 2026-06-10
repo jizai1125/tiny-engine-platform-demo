@@ -1,0 +1,32 @@
+diff --git a/dist/index.js b/dist/index.js
+index b59174aced584be98fc72c6e66a34815ace8ed32..29c2436021bb2fca25b872fcba119a96fff0cd18 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -1178,13 +1178,20 @@ const oa = /* @__PURE__ */ new Map(), sa = /* @__PURE__ */ new Map(), Pa = g(asy
+   })
+ }), Pe = g((n, e) => {
+   if (!n) return;
+-  const a = /* @__PURE__ */ new Map();
+-  return e.forEach((t) => a.set(t.group, t)), n.forEach((t) => {
+-    if (a.has(t.group))
+-      a.get(t.group).children.push(...t.children);
+-    else {
+-      const s = de(t);
+-      e.push(s), a.set(t.group, s);
++  const a = /* @__PURE__ */ new Map(), t = (s) => {
++    var r;
++    return s == null ? void 0 : s.snippetName || ((r = s == null ? void 0 : s.schema) == null ? void 0 : r.componentName);
++  };
++  return e.forEach((s) => a.set(s.group, s)), n.forEach((s) => {
++    if (a.has(s.group)) {
++      const r = a.get(s.group), o = new Set((r.children || []).map(t));
++      r.children.push(...(s.children || []).filter((i) => {
++        const l = t(i);
++        return !l || !o.has(l);
++      }));
++    } else {
++      const r = de(s);
++      e.push(r), a.set(s.group, r);
+     }
+   }), e;
+ }, {

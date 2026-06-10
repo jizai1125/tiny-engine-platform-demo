@@ -10,7 +10,7 @@ const distBundlePath = path.join(rootDir, 'materials', 'dist', 'bundle.json')
 const publicBundlePath = path.join(rootDir, 'designer', 'public', 'materials', 'bundle.json')
 
 const readJson = async (filePath) => JSON.parse(await fs.readFile(filePath, 'utf8'))
-const getSnippetKey = (snippet) => snippet?.schema?.componentName || snippet?.snippetName
+const getSnippetKey = (snippet) => snippet?.snippetName || snippet?.schema?.componentName
 
 const writeJson = async (filePath, content) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true })
@@ -37,8 +37,10 @@ const mergeComponentSnippets = (nextBundle, componentName, category, snippets) =
 
   const snippetGroups = nextBundle.data?.materials?.snippets || []
 
+  const snippetKeys = snippets.map(getSnippetKey).filter(Boolean)
+
   for (const snippetGroup of snippetGroups) {
-    snippetGroup.children = (snippetGroup.children || []).filter((snippet) => getSnippetKey(snippet) !== componentName)
+    snippetGroup.children = (snippetGroup.children || []).filter((snippet) => !snippetKeys.includes(getSnippetKey(snippet)))
   }
 
   if (!category) {

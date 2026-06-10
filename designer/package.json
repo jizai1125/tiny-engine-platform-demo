@@ -16,6 +16,7 @@
     "@demo/tiny-engine-materials": "workspace:*",
     "@demo/tiny-engine-plugin-page": "workspace:*",
     "@demo/tiny-engine-plugin-robot": "workspace:*",
+    "@demo/tiny-engine-plugin-tree": "workspace:*",
     "@opentiny/tiny-engine": "^2.10.0",
     "@opentiny/tiny-engine-dsl-vue": "^2.10.0",
     "@opentiny/tiny-engine-meta-register": "^2.10.0",

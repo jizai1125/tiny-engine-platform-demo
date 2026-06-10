@@ -1,0 +1,91 @@
+{
+  "icon": "slot",
+  "name": {
+    "zh_CN": "插槽"
+  },
+  "component": "Slot",
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "collapse": {
+          "number": 6,
+          "text": {
+            "zh_CN": "显示更多"
+          }
+        },
+        "content": [
+          {
+            "property": "name",
+            "type": "string",
+            "label": {
+              "text": {
+                "zh_CN": "插槽名称"
+              }
+            },
+            "cols": 12,
+            "widget": {
+              "component": "InputConfigurator",
+              "props": {}
+            }
+          },
+          {
+            "property": "params",
+            "type": "string",
+            "defaultValue": "",
+            "label": {
+              "text": {
+                "zh_CN": "作用域参数"
+              }
+            },
+            "widget": {
+              "component": "CodeConfigurator",
+              "props": {
+                "language": "json",
+                "tips": {
+                  "title": {
+                    "zh_CN": "提示：数据为数组类型"
+                  },
+                  "demo": {
+                    "zh_CN": "示例：\n[\n  {\n    \"name\": \"text\",\n    \"value\": {\n      \"type\": \"JSExpression\",\n      \"value\": \"this.state.greetingMessage\"\n    }\n  },\n  {\n    \"name\": \"count\",\n    \"value\": 1\n  }\n]"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "events": {},
+    "shortcuts": {
+      "properties": []
+    },
+    "contentMenu": {
+      "actions": []
+    }
+  },
+  "configure": {
+    "isContainer": true
+  },
+  "category": "advanced",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "插槽"
+      },
+      "screenshot": "",
+      "snippetName": "Slot",
+      "icon": "slot",
+      "schema": {
+        "componentName": "Slot",
+        "props": {}
+      },
+      "category": "advanced"
+    }
+  ]
+}

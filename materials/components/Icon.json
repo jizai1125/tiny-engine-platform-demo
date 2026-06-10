@@ -1,0 +1,90 @@
+{
+  "icon": "icon",
+  "name": {
+    "zh_CN": "图标"
+  },
+  "component": "Icon",
+  "container": false,
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "collapse": {
+          "number": 6,
+          "text": {
+            "zh_CN": "显示更多"
+          }
+        },
+        "content": [
+          {
+            "property": "name",
+            "type": "string",
+            "defaultValue": "IconDel",
+            "bindState": true,
+            "label": {
+              "text": {
+                "zh_CN": "图标类型"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "SelectIconConfigurator",
+              "props": {}
+            }
+          }
+        ]
+      }
+    ],
+    "events": {
+      "onClick": {
+        "label": {
+          "zh_CN": "点击事件"
+        },
+        "description": {
+          "zh_CN": "点击时触发的回调函数"
+        },
+        "type": "event",
+        "functionInfo": {
+          "params": [],
+          "returns": {}
+        },
+        "defaultValue": ""
+      }
+    },
+    "shortcuts": {
+      "properties": [
+        "name"
+      ]
+    },
+    "contentMenu": {
+      "actions": []
+    }
+  },
+  "configure": {
+    "loop": true
+  },
+  "category": "basic",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "图标"
+      },
+      "screenshot": "",
+      "snippetName": "Icon",
+      "icon": "icon",
+      "schema": {
+        "componentName": "Icon",
+        "props": {
+          "name": "IconDel"
+        }
+      },
+      "category": "basic"
+    }
+  ]
+}

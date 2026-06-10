@@ -1,0 +1,91 @@
+{
+  "icon": "RouterLink",
+  "name": {
+    "zh_CN": "路由链接"
+  },
+  "component": "RouterLink",
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "content": [
+          {
+            "property": "to",
+            "type": "String",
+            "label": {
+              "text": {
+                "zh_CN": "跳转页面"
+              }
+            },
+            "cols": 12,
+            "widget": {
+              "component": "RouterSelectConfigurator",
+              "props": {}
+            }
+          },
+          {
+            "property": "activeClass",
+            "type": "String",
+            "label": {
+              "text": {
+                "zh_CN": "激活样式类"
+              }
+            },
+            "cols": 12,
+            "widget": {
+              "component": "InputConfigurator",
+              "props": {}
+            }
+          },
+          {
+            "property": "exactActiveClass",
+            "type": "String",
+            "label": {
+              "text": {
+                "zh_CN": "准确激活样式类"
+              }
+            },
+            "cols": 12,
+            "widget": {
+              "component": "InputConfigurator",
+              "props": {}
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "configure": {
+    "loop": true,
+    "isContainer": true
+  },
+  "category": "advanced",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "路由链接"
+      },
+      "screenshot": "",
+      "snippetName": "RouterLink",
+      "icon": "RouterLink",
+      "schema": {
+        "componentName": "RouterLink",
+        "props": {},
+        "children": [
+          {
+            "componentName": "Text",
+            "props": {
+              "text": "路由文本"
+            }
+          }
+        ]
+      },
+      "category": "advanced"
+    }
+  ]
+}

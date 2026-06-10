@@ -1,0 +1,92 @@
+{
+  "icon": "Text",
+  "name": {
+    "zh_CN": "文本"
+  },
+  "component": "Text",
+  "schema": {
+    "properties": [
+      {
+        "label": {
+          "zh_CN": "基础信息"
+        },
+        "description": {
+          "zh_CN": "基础信息"
+        },
+        "collapse": {
+          "number": 6,
+          "text": {
+            "zh_CN": "显示更多"
+          }
+        },
+        "content": [
+          {
+            "property": "text",
+            "type": "string",
+            "defaultValue": "TinyEngine 前端可视化设计器，为设计器开发者提供定制服务，在线构建出自己专属的设计器。",
+            "label": {
+              "text": {
+                "zh_CN": "文本内容"
+              }
+            },
+            "cols": 12,
+            "rules": [],
+            "widget": {
+              "component": "InputConfigurator",
+              "props": {
+                "type": "textarea",
+                "autosize": true
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "events": {
+      "onClick": {
+        "label": {
+          "zh_CN": "点击事件"
+        },
+        "description": {
+          "zh_CN": "点击时触发的回调函数"
+        },
+        "type": "event",
+        "functionInfo": {
+          "params": [],
+          "returns": {}
+        },
+        "defaultValue": ""
+      }
+    },
+    "shortcuts": {
+      "properties": [
+        "text"
+      ]
+    },
+    "contentMenu": {
+      "actions": []
+    }
+  },
+  "configure": {
+    "loop": true
+  },
+  "category": "basic",
+  "snippets": [
+    {
+      "name": {
+        "zh_CN": "文本"
+      },
+      "screenshot": "",
+      "snippetName": "Text",
+      "icon": "Text",
+      "schema": {
+        "componentName": "Text",
+        "props": {
+          "style": "display: inline-block;",
+          "text": "TinyEngine 前端可视化设计器，为设计器开发者提供定制服务，在线构建出自己专属的设计器。"
+        }
+      },
+      "category": "basic"
+    }
+  ]
+}

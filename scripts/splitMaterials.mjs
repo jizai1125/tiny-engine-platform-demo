@@ -8,7 +8,7 @@ const sourceBundlePath = path.join(rootDir, 'materials', 'source', 'bundle.json'
 const componentsDir = path.join(rootDir, 'materials', 'components')
 
 const sanitizeName = (name) => name.replace(/[<>:"/\\|?*\s]+/g, '-')
-const getSnippetKey = (snippet) => snippet?.schema?.componentName || snippet?.snippetName
+const getSnippetKey = (snippet) => snippet?.snippetName || snippet?.schema?.componentName
 const bundle = JSON.parse(await fs.readFile(sourceBundlePath, 'utf8'))
 const components = bundle.data?.materials?.components || []
 const snippets = bundle.data?.materials?.snippets || []
