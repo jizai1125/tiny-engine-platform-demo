@@ -51,3 +51,64 @@ index a3a5a27..030dc56 100644
      });
    }), {
      globalState: e,
+diff --git a/dist/index.js b/dist/index.js
+index 95e59a6e6643a5928bd34ed1a63be33a08c4d252..91ff515e84be76fffb4b4cd2121494bbac0a8396 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -2092,6 +2092,19 @@ const Ro = /* @__PURE__ */ Te(Do, [["render", Lo], ["__scopeId", "data-v-33b2346
+       return (g = f == null ? void 0 : f.configure) == null ? void 0 : g.isModal;
+     }), d = Q(null), y = Q(""), m = Q(!1), b = () => {
+       m.value = !1;
++    }, C = (f, g) => {
++      var S, T, O;
++      const R = (f == null ? void 0 : f.componentName) || g || "";
++      if ((S = f == null ? void 0 : f.props) != null && S.componentName)
++        return f.props.componentName;
++      if ((f == null ? void 0 : f.componentType) === "Block")
++        return f.name_cn || f.label || R;
++      const E = Et().getMaterial(R);
++      return ((O = (T = E == null ? void 0 : E.name) == null ? void 0 : T.zh_CN) != null ? O : E == null ? void 0 : E.name_cn) || R;
++    }, D = (f) => {
++      var S;
++      const g = (f == null ? void 0 : f.schema) || ((S = N().getNodeWithParentById(f == null ? void 0 : f.id)) == null ? void 0 : S.node);
++      return C(g, f == null ? void 0 : f.componentName);
+     }, A = (f) => {
+       const g = f.parentNode;
+       if (g.className === void 0)
+@@ -2242,7 +2255,8 @@ const Ro = /* @__PURE__ */ Te(Do, [["render", Lo], ["__scopeId", "data-v-33b2346
+       isModal: h,
+       onMousedown: x,
+       labelStyle: v,
+-      labelRef: k
++      labelRef: k,
++      getStateDisplayName: D
+     };
+   }
+ }, mn = () => {
+@@ -2291,7 +2305,7 @@ function ta(t, e, r, n, i, s) {
+         class: "corner-mark-left",
+         style: Fe(n.labelStyle)
+       }, [
+-        V("span", null, Ee(r.selectState.componentName), 1),
++        V("span", null, Ee(n.getStateDisplayName(r.selectState)), 1),
+         oe(l, {
+           modelValue: n.showPopover,
+           "onUpdate:modelValue": e[2] || (e[2] = (b) => n.showPopover = b),
+@@ -2405,7 +2419,7 @@ function ta(t, e, r, n, i, s) {
+       [Ke, r.selectState.height && r.selectState.width]
+     ]),
+     $e(V("div", qo, [
+-      V("div", Yo, Ee(r.hoverState.componentName), 1),
++      V("div", Yo, Ee(n.getStateDisplayName(r.hoverState)), 1),
+       $e(V("div", Jo, "鎷栨斁鍏冪礌鍒板鍣ㄥ唴", 512), [
+         [Ke, (m = r.hoverState.configure) == null ? void 0 : m.isContainer]
+       ])
+@@ -2413,7 +2427,7 @@ function ta(t, e, r, n, i, s) {
+       [Ke, r.hoverState.height && r.hoverState.width]
+     ]),
+     $e(V("div", Xo, [
+-      V("div", Qo, Ee(r.inactiveHoverState.componentName), 1)
++      V("div", Qo, Ee(n.getStateDisplayName(r.inactiveHoverState)), 1)
+     ], 512), [
+       [Ke, r.inactiveHoverState.height && r.inactiveHoverState.width]
+     ]),
