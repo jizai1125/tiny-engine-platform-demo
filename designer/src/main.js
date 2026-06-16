@@ -10,6 +10,7 @@
  *
  */
 import { configurators } from './configurators/'
+import { installComponentNameNumbering } from './composable/componentNameNumbering'
 import { installPageTypeRenderer } from './page-type/index.js'
 import 'virtual:svg-icons-register'
 
@@ -24,6 +25,7 @@ async function startApp() {
     lifeCycles: {
       beforeAppCreate: () => {
         installPageTypeRenderer()
+        installComponentNameNumbering()
       }
     }
   })

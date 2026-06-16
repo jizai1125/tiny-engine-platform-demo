@@ -102,6 +102,10 @@ export default {
         return '页面'
       }
 
+      if (data?.props?.componentName) {
+        return data.props.componentName
+      }
+
       if (data?.componentType === 'Block') {
         return data.name_cn || data.label || componentName
       }
@@ -132,6 +136,44 @@ export default {
       )
     })
 
+    const findNodeById = (nodes, id) => {
+      if (!Array.isArray(nodes) || !id) {
+        return null
+      }
+
+      for (const node of nodes) {
+        if (node.id === id) {
+          return node
+        }
+
+        const matched = findNodeById(node.children, id)
+
+        if (matched) {
+          return matched
+        }
+      }
+
+      return null
+    }
+
+    const shouldRefreshTree = (operation) => {
+      if (operation?.type !== 'changeProps') {
+        return true
+      }
+
+      const props = operation.value?.props || {}
+      const cachedNode = findNodeById(state.pageSchema, operation.id)
+      const oldComponentName = cachedNode?.props?.componentName
+      const hasNewComponentName = Object.prototype.hasOwnProperty.call(props, 'componentName')
+      const newComponentName = hasNewComponentName
+        ? props.componentName
+        : operation.option?.overwrite
+          ? undefined
+          : oldComponentName
+
+      return oldComponentName !== newComponentName
+    }
+
     const { subscribe, unsubscribe } = useMessage()
 
     onActivated(() => {
@@ -141,7 +183,7 @@ export default {
         topic: 'schemaChange',
         subscriber: 'node-tree',
         callback: ({ operation }) => {
-          if (operation?.type !== 'changeProps') {
+          if (shouldRefreshTree(operation)) {
             state.pageSchema = filterSchema(pageState.pageSchema)
           }
         }
