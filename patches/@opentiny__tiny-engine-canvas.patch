@@ -1,58 +1,5 @@
-diff --git a/dist/render.js b/dist/render.js
-index a3a5a27..030dc56 100644
---- a/dist/render.js
-+++ b/dist/render.js
-@@ -78691,21 +78691,39 @@ function kK() {
-   };
- }
- const DK = Function;
-+const qK = (e) => {
-+  if (e && typeof e == "object")
-+    return e;
-+  if (typeof e == "string")
-+    try {
-+      const t = JSON.parse(e);
-+      return t && typeof t == "object" ? t : {};
-+    } catch {
-+      return {};
-+    }
-+  return {};
-+}, WK = (e) => {
-+  if (typeof e == "string")
-+    return e;
-+  if (e && typeof e == "object" && "value" in e && typeof e.value == "string")
-+    return e.value;
-+  return "";
-+};
- function BK() {
-   const e = rn([]), t = (i = []) => {
-     e.value = i;
-   }, s = Ou({});
-   return ng(() => {
-     jd(s), e.value.forEach(({ id: i, state: o = {}, getters: l = {} }) => {
--      const u = Object.keys(l).reduce(
--        (p, f) => ({
--          ...p,
--          [f]: new DK("return " + l[f])().call(p, o)
--          // parseData(getters[key], null, acc)?.call?.(acc, state)  //理论上不应该走parseData, unibuy代码遗留
--        }),
--        {}
--      );
--      s[i] = { ...o, ...u };
-+      const u = qK(o), p = Object.keys(l).reduce((f, m) => {
-+        const g = WK(l[m]);
-+        return g ? {
-+          ...f,
-+          [m]: new DK("return " + g)().call(f, u)
-+          // parseData(getters[key], null, acc)?.call?.(acc, state)  //理论上不应该走parseData, unibuy代码遗留
-+        } : f;
-+      }, {});
-+      s[i] = { ...u, ...p };
-     });
-   }), {
-     globalState: e,
 diff --git a/dist/index.js b/dist/index.js
-index 95e59a6e6643a5928bd34ed1a63be33a08c4d252..91ff515e84be76fffb4b4cd2121494bbac0a8396 100644
+index 95e59a6..91ff515 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -2092,6 +2092,19 @@ const Ro = /* @__PURE__ */ Te(Do, [["render", Lo], ["__scopeId", "data-v-33b2346
@@ -100,7 +47,7 @@ index 95e59a6e6643a5928bd34ed1a63be33a08c4d252..91ff515e84be76fffb4b4cd2121494bb
      $e(V("div", qo, [
 -      V("div", Yo, Ee(r.hoverState.componentName), 1),
 +      V("div", Yo, Ee(n.getStateDisplayName(r.hoverState)), 1),
-       $e(V("div", Jo, "鎷栨斁鍏冪礌鍒板鍣ㄥ唴", 512), [
+       $e(V("div", Jo, "拖放元素到容器内", 512), [
          [Ke, (m = r.hoverState.configure) == null ? void 0 : m.isContainer]
        ])
 @@ -2413,7 +2427,7 @@ function ta(t, e, r, n, i, s) {
@@ -112,3 +59,55 @@ index 95e59a6e6643a5928bd34ed1a63be33a08c4d252..91ff515e84be76fffb4b4cd2121494bb
      ], 512), [
        [Ke, r.inactiveHoverState.height && r.inactiveHoverState.width]
      ]),
+diff --git a/dist/render.js b/dist/render.js
+index a3a5a27..4358bc6 100644
+--- a/dist/render.js
++++ b/dist/render.js
+@@ -78691,21 +78691,39 @@ function kK() {
+   };
+ }
+ const DK = Function;
++const qK = (e) => {
++  if (e && typeof e == "object")
++    return e;
++  if (typeof e == "string")
++    try {
++      const t = JSON.parse(e);
++      return t && typeof t == "object" ? t : {};
++    } catch {
++      return {};
++    }
++  return {};
++}, WK = (e) => {
++  if (typeof e == "string")
++    return e;
++  if (e && typeof e == "object" && "value" in e && typeof e.value == "string")
++    return e.value;
++  return "";
++};
+ function BK() {
+   const e = rn([]), t = (i = []) => {
+     e.value = i;
+   }, s = Ou({});
+   return ng(() => {
+     jd(s), e.value.forEach(({ id: i, state: o = {}, getters: l = {} }) => {
+-      const u = Object.keys(l).reduce(
+-        (p, f) => ({
+-          ...p,
+-          [f]: new DK("return " + l[f])().call(p, o)
++      const u = qK(o), p = Object.keys(l).reduce((f, m) => {
++        const g = WK(l[m]);
++        return g ? {
++          ...f,
++          [m]: new DK("return " + g)().call(f, u)
+           // parseData(getters[key], null, acc)?.call?.(acc, state)  //理论上不应该走parseData, unibuy代码遗留
+-        }),
+-        {}
+-      );
+-      s[i] = { ...o, ...u };
++        } : f;
++      }, {});
++      s[i] = { ...u, ...p };
+     });
+   }), {
+     globalState: e,
